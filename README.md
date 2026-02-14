@@ -11,7 +11,10 @@ It solves the problem of human bandwidth during mass-casualty events by providin
 *   **The Brain (Local):** A dedicated onsite server runs the AI models (Whisper + Mistral).
 
 ## 🏗️ System Architecture
-![EAEDS Architecture Diagram](./diagram.png)
+![EAEDS Architecture Diagram]
+
+<img width="2548" height="8192" alt="image" src="https://github.com/user-attachments/assets/413c9d35-5481-489a-bbdb-7fb5c83ead50" />
+
 
 ## 🧠 AI Capabilities
 1.  **Hearing (Faster-Whisper):** Instant, accurate speech-to-text.
