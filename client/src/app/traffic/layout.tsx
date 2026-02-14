@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Sidebar from "../../components/live/Sidebar";
 
 export const metadata: Metadata = {
-    title: "Traffic Control — DispatcherAI",
+    title: "Traffic Control - EAEDS Control",
+    description: "Traffic Incident Monitoring",
     icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

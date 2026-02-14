@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-    title: "DispatcherAI",
-    icons: [{ rel: "icon", url: "/favicon.ico" }],
+    title: "EAEDS Control",
+    description: "Emotion-Aware Emergency Dispatch System",
 };
 
 export default function RootLayout({

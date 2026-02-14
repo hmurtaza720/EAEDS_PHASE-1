@@ -6,7 +6,7 @@ import json
 from server.config import AI_MODE
 
 # Initialize App
-app = FastAPI(title="DispatchAI (FYP Edition)")
+app = FastAPI(title="EAEDS Control")
 
 # CORS (Allow Frontend to talk to Backend)
 app.add_middleware(
@@ -17,21 +17,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize the Brain (Dynamic Loading)
-print(f" [System] Booting in {AI_MODE} mode...")
-ai_engine = None
+# Initialize the Brain
+ai_service = None
 
-if AI_MODE == "GROQ":
-    # Debugging: Check if key is actually loaded
-    from server.config import GROQ_API_KEY
-    print(f" [Debug] GROQ_API_KEY Linked: {'YES' if GROQ_API_KEY else 'NO'}")
-    
-    # REMOVED TRY-EXCEPT TO SEE ACTUAL ERROR
-    from server.ai_engine.groq_service import GroqService
-    ai_engine = GroqService()
+if AI_MODE == "LOCAL":
+    print(" 🧠 [SYSTEM] Booting AI in LOCAL Mode (On-Premise GPU)...")
+    # In future, this will import LocalAIService
+    # ai_service = LocalAIService()
+    # Temporary fallback until Local Class is ready
+    ai_service = MockAIService()
+    print(" ⚠️ [NOTICE] Local Service class not found, falling back to MOCK for stability.")
+
 else:
+    print(" 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...")
+    # Using Mock Service for Dev/Testing to save API costs
     from server.ai_engine.mock_service import MockAIService
-    ai_engine = MockAIService()
+    ai_service = MockAIService()
 # Initialize Database
 db = DatabaseManager()
 
@@ -54,8 +55,9 @@ def lookup_location(number: str):
     return {"city": "Unknown", "state": "USA"}
 
 # Connection Manager for Broadcasting
+# Connection Manager for Broadcasting
 class ConnectionManager:
-    # ... (existing init/connect/disconnect)
+    # ConnectionManager handles the broadcasting to multiple dashboards
     def __init__(self):
         self.active_connections: list[WebSocket] = []
 
@@ -89,7 +91,7 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             message_data = json.loads(data)
             
-            # --- PHASE 2.0: START CALL LOGIC ---
+            # Call Start Event Logic
             if message_data.get("event") == "start_call":
                 phone = message_data.get("phone")
                 loc_manual = message_data.get("location_manual")
@@ -142,7 +144,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if message_data.get("event") == "get_db":
                 continue
 
-            # HANDLE COLAB HYBRID UPDATES
+            # Handling updates from AI worker
             if message_data.get("event") == "colab_update":
                 # Remap fields for Dashboard
                 dashboard_payload = {
@@ -208,7 +210,21 @@ class SettingsUpdate(BaseModel):
 def get_settings(user_id: int, db: Session = Depends(get_db)):
     settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == user_id).first()
     if not settings:
-        raise HTTPException(status_code=404, detail="Settings not found")
+        # Auto-create default settings if not found (Self-Healing)
+        print(f" [System] Creating default settings for User {user_id}")
+        new_settings = models.UserSettings(
+            user_id=user_id,
+            theme="dark",
+            notifications_enabled=True,
+            auto_connect=True,
+            default_state="CA",
+            mic_sensitivity=75,
+            speaker_volume=90
+        )
+        db.add(new_settings)
+        db.commit()
+        db.refresh(new_settings)
+        return new_settings
     return settings
 
 @app.put("/settings/{user_id}")

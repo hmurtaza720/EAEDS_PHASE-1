@@ -36,7 +36,8 @@ const Sidebar = () => {
     });
     const [devices, setDevices] = useState<{ inputs: MediaDeviceInfo[]; outputs: MediaDeviceInfo[] }>({ inputs: [], outputs: [] });
 
-    // Close on click outside
+    // Handling click outside to close the profile dropdown
+    // This provides a better UX than finding the close button
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
@@ -53,7 +54,7 @@ const Sidebar = () => {
         };
     }, [isProfileOpen]);
 
-    // Fetch devices on menu open
+    // Fetch available media devices when the audio menu is opened
     useEffect(() => {
         if (isProfileOpen && activeSubmenu === "audio") {
             navigator.mediaDevices.enumerateDevices().then(devs => {
@@ -292,15 +293,17 @@ const Sidebar = () => {
 
                             <Separator className="bg-slate-800 my-2" />
 
-                            <button className="group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300">
-                                <LogOut size={16} className="mr-3" />
-                                Sign Out
-                            </button>
+                            <Link href="/">
+                                <button className="group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300">
+                                    <LogOut size={16} className="mr-3" />
+                                    Sign Out
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Sidebar from "../../components/live/Sidebar";
 
 export const metadata: Metadata = {
-    title: "Profile — DispatcherAI",
+    title: "Profile - EAEDS Control",
     icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

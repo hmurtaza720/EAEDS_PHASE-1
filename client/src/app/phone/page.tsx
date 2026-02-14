@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, MapPin, Delete, PhoneOff, Mic, MicOff } from "lucide-react";
+import { Phone, MapPin, Delete, PhoneOff, Mic, MicOff, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { US_STATES } from "@/data/constants";
 // import { areaCodes } from "area-codes"; // Types might be missing, so we'll use a safer approach or ignore ts
@@ -177,7 +178,14 @@ export default function PhonePage() {
     ];
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 font-sans text-slate-200">
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 font-sans text-slate-200 relative">
+            <div className="absolute top-4 right-4 sm:top-8 sm:right-8">
+                <Link href="/">
+                    <Button variant="ghost" className="text-slate-400 hover:text-white">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+                    </Button>
+                </Link>
+            </div>
             <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl">
                 {/* Status Bar Mock */}
                 <div className="flex justify-between px-6 py-3 text-[10px] font-bold text-slate-500">

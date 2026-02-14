@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Sidebar from "../../components/live/Sidebar";
 
 export const metadata: Metadata = {
-    title: "Settings — DispatcherAI",
+    title: "Settings - EAEDS Control",
+    description: "Dispatcher Preferences",
     icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

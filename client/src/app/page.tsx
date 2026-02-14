@@ -20,7 +20,7 @@ export default function LandingPage() {
 
                     <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-400">
                         <a href="#features" className="hover:text-white transition-colors">Features</a>
-                        <a href="#about" className="hover:text-white transition-colors">About</a>
+                        <Link href="/about" className="hover:text-white transition-colors">About</Link>
                     </div>
 
                     <div className="flex items-center space-x-4">
@@ -71,10 +71,12 @@ export default function LandingPage() {
                                         Live Dashboard
                                     </Button>
                                 </Link>
-                                <Button variant="outline" className="h-12 px-8 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white">
-                                    <Play className="mr-2 h-4 w-4" />
-                                    Test Call
-                                </Button>
+                                <Link href="/phone">
+                                    <Button variant="outline" className="h-12 px-8 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white">
+                                        <Play className="mr-2 h-4 w-4" />
+                                        Test Call
+                                    </Button>
+                                </Link>
                             </div>
 
                             <div className="grid grid-cols-3 gap-8 pt-8 border-t border-slate-800/50">
@@ -295,9 +297,11 @@ export default function LandingPage() {
                                         Launch Dashboard
                                     </Button>
                                 </Link>
-                                <Button variant="outline" className="h-12 px-8 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 w-full sm:w-auto">
-                                    Try Emergency Call
-                                </Button>
+                                <Link href="/phone">
+                                    <Button variant="outline" className="h-12 px-8 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 w-full sm:w-auto">
+                                        Try Emergency Call
+                                    </Button>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -313,10 +317,31 @@ export default function LandingPage() {
                     </div>
                     <p className="text-slate-500 text-sm">
                         © 2026 EAEDS Control. Emotion-Aware Emergency Dispatch System. <br />
-                        Powered by AI • Built for saving lives
+                        Powered by Local Edge AI • Built for saving lives
                     </p>
                 </div>
             </footer>
-        </div>
+
+            {/* Short Button / Quick Action Menu (Floating) */}
+            <div className="fixed bottom-6 right-6 z-50 group">
+                <div className="absolute bottom-16 right-0 w-48 space-y-2 origin-bottom-right scale-0 transition-transform duration-200 group-hover:scale-100 flex flex-col items-end">
+                    <Link href="/dashboard" className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg text-sm">
+                        <Activity className="mr-2 h-4 w-4" /> Live Dashboard
+                    </Link>
+                    <Link href="/phone" className="flex items-center justify-center w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg border border-slate-700 text-sm">
+                        <Play className="mr-2 h-4 w-4" /> Test Mock Call
+                    </Link>
+                    <Link href="/signup" className="flex items-center justify-center w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg border border-slate-700 text-sm">
+                        <Shield className="mr-2 h-4 w-4" /> Agency Sign Up
+                    </Link>
+                    <Link href="/about" className="flex items-center justify-center w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg border border-slate-700 text-sm">
+                        About Team
+                    </Link>
+                </div>
+                <button className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 shadow-xl shadow-blue-600/30 hover:bg-blue-500 transition-colors group-hover:rotate-45 duration-300">
+                    <Zap className="h-6 w-6 text-white" fill="currentColor" />
+                </button>
+            </div>
+        </div >
     );
 }

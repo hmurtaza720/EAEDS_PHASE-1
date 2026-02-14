@@ -100,7 +100,7 @@ const SettingsPage = () => {
                 }
             } catch (error) {
                 console.error("Failed to fetch settings", error);
-                toast({ title: "Error", description: "Could not load settings from server.", variant: "destructive" });
+                // toast({ title: "Error", description: "Could not load settings from server.", variant: "destructive" });
             }
         };
         fetchSettings();
@@ -270,27 +270,7 @@ const SettingsPage = () => {
                         {/* GENERAL SETTINGS */}
                         {activeTab === "general" && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <SectionHeader title="Appearance" description="Customize how the application looks properly." />
-                                <div className="grid grid-cols-3 gap-4">
-                                    {["light", "dark", "system"].map((theme) => (
-                                        <button
-                                            key={theme}
-                                            onClick={() => setSettings({ ...settings, theme })}
-                                            className={cn(
-                                                "flex flex-col items-center justify-center rounded-xl border-2 p-4 transition-all hover:bg-slate-800",
-                                                settings.theme === theme
-                                                    ? "border-blue-500 bg-slate-800/80"
-                                                    : "border-slate-800 bg-slate-900/50"
-                                            )}
-                                        >
-                                            {theme === "light" && <Sun className="mb-2 h-6 w-6 text-yellow-400" />}
-                                            {theme === "dark" && <Moon className="mb-2 h-6 w-6 text-blue-400" />}
-                                            {theme === "system" && <Laptop className="mb-2 h-6 w-6 text-slate-400" />}
-                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{theme}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="bg-slate-800/1 h-[1px]" />
+                                {/* [Syed Murtaza Hassan]: Simplified Settings - Removed Theme Toggle to focus on core functionality */}
                                 <SectionHeader title="Notifications" description="Manage alerts and system sounds." />
                                 <div className="space-y-4">
                                     <Toggle
