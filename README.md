@@ -10,6 +10,9 @@ It solves the problem of human bandwidth during mass-casualty events by providin
 *   **The Body (Local):** Your laptop runs the sleek React UI (Phone + Map).
 *   **The Brain (Local):** A dedicated onsite server runs the AI models (Whisper + Mistral).
 
+## 🏗️ System Architecture
+![EAEDS Architecture Diagram](./diagram.png)
+
 ## 🧠 AI Capabilities
 1.  **Hearing (Faster-Whisper):** Instant, accurate speech-to-text.
 2.  **Feeling (OpenSMILE):** Detects if a caller is **Calm** or **Panicking** (Acoustic Analysis).
