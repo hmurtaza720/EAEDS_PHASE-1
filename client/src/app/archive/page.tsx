@@ -7,14 +7,14 @@ import Header from "@/components/live/Header";
 import { FilterState } from "@/components/live/EventPanel";
 import { US_STATES } from "@/data/constants";
 import TranscriptPanel from "@/components/live/TranscriptPanel";
-import { ChevronRight, ChevronLeft, Info, BrainCircuit, Siren, FireExtinguisher, Ambulance } from "lucide-react";
+import { ChevronRight, ChevronLeft, Info, BrainCircuit, Siren, FireExtinguisher, Ambulance, Phone } from "lucide-react";
 import EmotionCard from "@/components/live/EmotionCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { ARCHIVE_MESSAGES } from "@/data/archiveMessages";
+
 
 const Map = dynamic(() => import("@/components/live/map/Map"), {
     loading: () => <p>Rendering Map...</p>,
@@ -45,7 +45,7 @@ export type Call = {
     name: string;
     phone: string;
     recommendation: string;
-    severity?: "CRITICAL" | "MODERATE" | "RESOLVED";
+    severity?: "CRITICAL" | "MODERATE" | "RESOLVED" | "UNRESOLVED";
     summary: string;
     time: string; // ISO Date String
     title?: string;
@@ -88,7 +88,7 @@ const emptyCall: Call = {
 
 const Page = () => {
     const [connected, setConnected] = useState(false);
-    const [data, setData] = useState<Record<string, Call>>(ARCHIVE_MESSAGES);
+    const [data, setData] = useState<Record<string, Call>>({});
     const [selectedId, setSelectedId] = useState<string | undefined>();
     const [resolvedIds, setResolvedIds] = useState<string[]>([]);
     const [city, setCity] = useState("ALL");
@@ -145,7 +145,12 @@ const Page = () => {
             if (!typeMatch) match = false;
         }
 
-        if (match) acc[key] = call;
+        // Archive constraint: Only show ended calls (RESOLVED or UNRESOLVED)
+        if (match) {
+            if (call.severity === "RESOLVED" || call.severity === "UNRESOLVED") {
+                acc[key] = call;
+            }
+        }
         return acc;
     }, {} as Record<string, Call>);
 
@@ -335,6 +340,12 @@ const Page = () => {
                                                 <div className="space-y-0.5">
                                                     <h3 className="text-base font-bold leading-tight text-white">{data[selectedId].title || "Untiled Case"}</h3>
                                                     <p className="text-[10px] text-slate-500 font-medium">{data[selectedId].location_name}</p>
+                                                    {data[selectedId].phone && data[selectedId].phone !== "Unknown" && (
+                                                        <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                                                            <Phone size={10} className="text-blue-400" />
+                                                            <span className="font-mono">{data[selectedId].phone}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className={cn(
                                                     "rounded p-1",
@@ -388,50 +399,48 @@ const Page = () => {
 
                                         <Separator className="bg-slate-800/50" />
 
-                                        {/* Rapid Dispatch Section */}
+                                        {/* Dispatched Services Section */}
                                         <div className="space-y-2">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Rapid Dispatch</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dispatched Services</p>
                                             <div className="grid grid-cols-3 gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    className="h-9 px-2 border-blue-900/30 bg-blue-950/20 text-blue-400 hover:bg-blue-900/30 text-[10px] gap-1.5"
-                                                    onClick={() => {
-                                                        toast({
-                                                            title: "Police Dispatched",
-                                                            description: `Units en route to ${data[selectedId].location_name}`
-                                                        });
-                                                        handleResolve(selectedId);
-                                                    }}
-                                                >
-                                                    <Siren size={12} /> Police
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="h-9 px-2 border-red-900/30 bg-red-950/20 text-red-400 hover:bg-red-900/30 text-[10px] gap-1.5"
-                                                    onClick={() => {
-                                                        toast({
-                                                            title: "Fire Dispatched",
-                                                            description: "Engine units responding."
-                                                        });
-                                                        handleResolve(selectedId);
-                                                    }}
-                                                >
-                                                    <FireExtinguisher size={12} /> Fire
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="h-9 px-2 border-green-900/30 bg-green-950/20 text-green-400 hover:bg-green-900/30 text-[10px] gap-1.5"
-                                                    onClick={() => {
-                                                        toast({
-                                                            title: "EMS Dispatched",
-                                                            description: "Paramedics en route."
-                                                        });
-                                                        handleResolve(selectedId);
-                                                    }}
-                                                >
-                                                    <Ambulance size={12} /> EMS
-                                                </Button>
+                                                {(() => {
+                                                    const services = (data[selectedId] as any)?.dispatched_services || [];
+                                                    return (
+                                                        <>
+                                                            <div className={cn(
+                                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                                services.includes("Police")
+                                                                    ? "border-blue-500/40 bg-blue-950/30 text-blue-400"
+                                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                                            )}>
+                                                                <Siren size={12} />
+                                                                {services.includes("Police") ? "✓ Police" : "Police"}
+                                                            </div>
+                                                            <div className={cn(
+                                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                                services.includes("Fire")
+                                                                    ? "border-red-500/40 bg-red-950/30 text-red-400"
+                                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                                            )}>
+                                                                <FireExtinguisher size={12} />
+                                                                {services.includes("Fire") ? "✓ Fire" : "Fire"}
+                                                            </div>
+                                                            <div className={cn(
+                                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                                services.includes("EMS")
+                                                                    ? "border-green-500/40 bg-green-950/30 text-green-400"
+                                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                                            )}>
+                                                                <Ambulance size={12} />
+                                                                {services.includes("EMS") ? "✓ EMS" : "EMS"}
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
+                                            {((data[selectedId] as any)?.dispatched_services || []).length === 0 && (
+                                                <p className="text-[10px] text-slate-600 italic text-center">No services dispatched</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -454,6 +463,17 @@ const Page = () => {
                         handleTransfer={handleTransfer}
                         handleResolve={handleResolve}
                         mode="archive"
+                        relatedCalls={
+                            selectedId && data[selectedId]?.phone && data[selectedId].phone !== "Unknown"
+                                ? Object.entries(data)
+                                    .filter(([key, call]) =>
+                                        key !== selectedId &&
+                                        call.phone === data[selectedId].phone
+                                    )
+                                    .map(([key, call]) => ({ id: key, title: call.title || "Emergency Call", time: call.time }))
+                                : []
+                        }
+                        onSelectRelatedCall={(id: string) => setSelectedId(id)}
                     />
                 </div>
             </div>

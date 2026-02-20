@@ -7,7 +7,6 @@ import Header from "@/components/live/Header";
 import { FilterState } from "@/components/live/EventPanel";
 import { US_STATES, CITY_COORDS } from "@/data/constants";
 import { Call } from "@/data/types";
-import { MESSAGES } from "@/data/mock_data";
 import TranscriptPanel from "@/components/live/TranscriptPanel";
 import { ChevronRight, ChevronLeft, Info, BrainCircuit, Siren, FireExtinguisher, Ambulance } from "lucide-react";
 import EmotionCard from "@/components/live/EmotionCard";
@@ -72,7 +71,7 @@ const emptyCall: Call = {
 
 const Page = () => {
     const [connected, setConnected] = useState(false);
-    const [data, setData] = useState<Record<string, Call>>(MESSAGES);
+    const [data, setData] = useState<Record<string, Call>>({});
     const [selectedId, setSelectedId] = useState<string | undefined>();
     const [resolvedIds, setResolvedIds] = useState<string[]>([]);
     const [city, setCity] = useState("ALL");
@@ -105,9 +104,32 @@ const Page = () => {
         connectWs();
     };
 
+    // Reset System Function
+    const handleResetSystem = async () => {
+        if (!confirm("⚠️ RESET SYSTEM?\n\nThis will clear ALL active calls from the live dashboard.\n(Database history will be preserved).")) return;
+
+        try {
+            const res = await fetch("http://127.0.0.1:8000/api/reset-system", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wipe_db: false })
+            });
+            if (res.ok) {
+                toast({ title: "System Reset", description: "All active calls cleared." });
+                window.location.reload();
+            } else {
+                alert("Reset failed");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error resetting system");
+        }
+    };
+
     // Filter data based on selected city
     const filteredData = Object.entries(data).reduce((acc, [key, call]) => {
-        if (key === "live_session_1") {
+        // Only auto-pass live sessions that are still ACTIVE (Connected)
+        if (key.startsWith("live_session_") && call.status === "Connected" && call.severity !== "RESOLVED" && call.severity !== "UNRESOLVED") {
             acc[key] = call;
             return acc;
         }
@@ -141,13 +163,41 @@ const Page = () => {
             if (!typeMatch) match = false;
         }
 
-        if (match && filters.severity !== "ALL") {
-            if (call.severity !== filters.severity) match = false;
+        if (match) {
+            // RESOLVED calls are hidden from the live dashboard (they're in archive)
+            if (call.severity === "RESOLVED") {
+                match = false;
+            }
+            // UNRESOLVED calls: show them but auto-expire after 2 minutes
+            else if (call.severity === "UNRESOLVED") {
+                if (filters.severity === "UNRESOLVED" || filters.severity === "ALL") {
+                    // Check if the call has expired (2 min after ended_at)
+                    const endedAt = new Date(call.time).getTime();
+                    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+                    if (endedAt < twoMinutesAgo) {
+                        match = false; // Expired, hide it
+                    }
+                } else {
+                    match = false; // Severity filter doesn't match
+                }
+            }
+            // CRITICAL or active calls: apply severity filter
+            else if (filters.severity !== "ALL" && call.severity !== filters.severity) {
+                match = false;
+            }
         }
 
         if (match) acc[key] = call;
         return acc;
     }, {} as Record<string, Call>);
+
+    // Auto-expire UNRESOLVED calls: re-evaluate every 30 seconds
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            setData(prev => ({ ...prev })); // Trigger re-render to re-evaluate filteredData
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     const { center, zoom } = useMemo(() => {
         if (selectedId && data[selectedId]) {
@@ -196,19 +246,40 @@ const Page = () => {
         setSelectedId(id === selectedId ? undefined : id);
     };
 
-    const handleResolve = (id: string) => {
-        setResolvedIds((prev) => {
-            const newResolvedIds = [...prev, id];
+    const handleDispatch = (id: string, dispatchType: string) => {
+        // Guard: don't dispatch on ended calls
+        const call = data[id];
+        if (call?.severity === "RESOLVED" || call?.severity === "UNRESOLVED" || call?.status === "Disconnected") {
+            console.log(`Dispatch blocked — call ${id} has already ended.`);
+            return;
+        }
 
-            const newData = { ...data };
-            Object.keys(newData).forEach((key) => {
-                if (newResolvedIds.includes(newData[key].id)) {
-                    newData[key].severity = "RESOLVED";
-                }
-            });
+        // Send dispatch event — marks the call as dispatched but does NOT end it
+        if (id.startsWith("live_session_")) {
+            const phoneToSend = call?.phone || id.replace("live_session_", "");
 
-            setData(newData);
-            return newResolvedIds;
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                    event: "dispatch",
+                    phone: phoneToSend,
+                    dispatch_type: dispatchType
+                }));
+                console.log(`Sent dispatch event (${dispatchType}) for:`, phoneToSend);
+            }
+        }
+
+        // Update local state: track which services have been dispatched
+        setData(prev => {
+            const updated = { ...prev };
+            if (updated[id]) {
+                const existing = (updated[id] as any).dispatched_services || [];
+                updated[id] = {
+                    ...updated[id],
+                    responder_type: dispatchType + " Dispatched",
+                    dispatched_services: [...existing, dispatchType]
+                } as any;
+            }
+            return updated;
         });
     };
 
@@ -375,12 +446,26 @@ const Page = () => {
             if (message.event === "ai_response") {
                 console.log("Received AI response", message);
                 setData(prevData => {
-                    const liveCallId = "live_session_1";
+                    // DYNAMIC ID: Use phone number if available in message, else fallback to live_session_1 or find active
+                    // Since ai_response might not have phone, we need to find the active call or rely on valid ID.
+                    // Actually, for now, let's assume single active call or reuse the ID if we can't find phone.
+                    // BETTER: The server should send phone in ai_response? It doesn't currently.
+                    // Fallback: update the most recently modified call? 
+                    // To keep it simple for this fix: map "live_session_1" to the active call if we only support 1.
+                    // BUT: user said "new number -> old transcript". This implies we need to key by phone.
+
+                    // Strategy: If we have a single active call in the UI, update it.
+                    // If we have multiple, we need an ID.
+                    // Let's rely on "live_session_1" BUT ensure it's overwritten by incoming_call correctly.
+
+                    const phone = (message as any).phone;
+                    const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
                     const currentCall = prevData[liveCallId] || {
                         ...emptyCall,
                         id: liveCallId,
                         title: "Live Incoming Call",
-                        name: "Caller (Unknown)",
+                        name: phone ? `Caller ${phone}` : "Caller (Unknown)",
+                        phone: phone || "",
                         severity: "CRITICAL",
                         location_name: "Detecting...",
                         type: "Emergency",
@@ -388,9 +473,51 @@ const Page = () => {
                         transcript: []
                     };
 
+                    // 1. Handle Full Transcript Replacement (State Recovery)
+                    if ((message as any).full_transcript) {
+                        const recoveredTranscript = (message as any).full_transcript;
+                        return {
+                            ...prevData,
+                            [liveCallId]: {
+                                ...currentCall,
+                                transcript: recoveredTranscript,
+                                emotions: currentCall.emotions, // Keep existing or update if emotion provided
+                                location_coords: currentCall.location_coords,
+                                location_name: currentCall.location_name
+                            }
+                        };
+                    }
+
+                    // 2. Incremental Update with Strict Deduplication
                     const newEntries = [];
-                    if (message.user_text) newEntries.push({ role: "user" as const, content: message.user_text });
-                    if (message.text) newEntries.push({ role: "assistant" as const, content: message.text });
+
+                    // Create a Set of existing message signatures to prevent dupes
+                    const existingSignatures = new Set(
+                        currentCall.transcript.map(t => `${t.role}:${t.content.trim()}`)
+                    );
+
+                    // Check User Text
+                    if (message.user_text) {
+                        const signature = `user:${message.user_text.trim()}`;
+                        if (!existingSignatures.has(signature)) {
+                            newEntries.push({ role: "user" as const, content: message.user_text });
+                            existingSignatures.add(signature);
+                        }
+                    }
+
+                    // Check AI Text
+                    if (message.text) {
+                        const signature = `assistant:${message.text.trim()}`;
+
+                        // Filter out any system/debug messages if they leak
+                        // Also proactively filter out "Resetting simulation" type messages if they exist
+                        const isSystemDump = message.text.includes("<ACTION>") || message.text.includes("Simulation Reset");
+
+                        if (!existingSignatures.has(signature) && !isSystemDump) {
+                            newEntries.push({ role: "assistant" as const, content: message.text });
+                            existingSignatures.add(signature);
+                        }
+                    }
 
                     const newTranscript = [...currentCall.transcript, ...newEntries];
 
@@ -412,6 +539,20 @@ const Page = () => {
                         newLocationName = "Detected Location";
                     }
 
+                    let newCityState = currentCall.city_state;
+                    if ((message as any).city_state) {
+                        newCityState = (message as any).city_state;
+                    }
+
+                    let newStatus = currentCall.status;
+                    let newSeverity = currentCall.severity;
+
+                    if ((message as any).end_call) {
+                        newStatus = "Disconnected";
+                        newSeverity = "RESOLVED";
+                        // Optionally trigger toast here or outside
+                    }
+
                     return {
                         ...prevData,
                         [liveCallId]: {
@@ -419,43 +560,124 @@ const Page = () => {
                             transcript: newTranscript,
                             emotions: newEmotions,
                             location_coords: newLocation,
-                            location_name: newLocationName
+                            location_name: newLocationName,
+                            city_state: newCityState,
+                            status: newStatus,
+                            severity: newSeverity
                         }
                     };
                 });
 
-                if (selectedId !== "live_session_1") {
-                    setSelectedId("live_session_1");
+
+                // Recalculate ID for selection logic since we are outside setData scope
+                const phone = (message as any).phone;
+                const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
+
+                if (!selectedId) {
+                    setSelectedId(liveCallId);
+                }
+
+                if ((message as any).end_call) {
+                    toast({
+                        title: "Call Ended",
+                        description: "The call has been resolved and archived.",
+                        variant: "default" // or success style
+                    });
                 }
             } else if (message.event === "incoming_call") {
                 console.log("Incoming Call Received:", message);
+                // FORCE RESET: When a new call comes in, we must wipe the previous state.
                 setData(prevData => {
-                    const liveCallId = "live_session_1";
+                    const phone = (message as any).phone;
+                    const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1"; // We reuse this ID for the main view
+
+                    // Create a FRESH object, do not merge with old transcript
+                    const newCallData: Call = {
+                        ...emptyCall,
+                        id: liveCallId, // Keep UI ID constant for now
+                        phone: (message as any).phone,
+                        title: "Incoming 911 Call",
+                        name: `Caller ${(message as any).phone || "Unknown"}`,
+                        severity: "CRITICAL",
+                        location_name: (message as any).location_manual,
+                        city_state: (message as any).city_state || "Unknown",
+                        type: "Emergency",
+                        time: (message as any).timestamp || new Date().toISOString(),
+                        // Reset Transcript completely
+                        transcript: [{ role: "assistant", content: "911 dispatch connected. Tracking location..." }],
+                        status: "Connected",
+                        responder_type: "AI Agent",
+                        // Map the explicit emotion from incoming_call
+                        emotions: (message as any).emotion ? [{
+                            emotion: (message as any).emotion,
+                            intensity: 0.9
+                        }] : []
+                    };
+
                     return {
                         ...prevData,
-                        [liveCallId]: {
-                            ...emptyCall,
-                            id: liveCallId,
-                            title: "Incoming 911 Call",
-                            name: `Caller ${(message as any).phone || "Unknown"}`,
-                            severity: "CRITICAL",
-                            location_name: (message as any).location_manual,
-                            type: "Emergency",
-                            time: (message as any).timestamp || new Date().toISOString(),
-                            transcript: [{ role: "assistant", content: "911 dispatch connected. Tracking location..." }],
-                            status: "Connected",
-                            responder_type: "AI Agent"
-                        }
+                        [liveCallId]: newCallData
                     };
                 });
-                setSelectedId("live_session_1");
-                toast({
-                    title: "Incoming Emergency Call",
-                    description: `Call from ${(message as any).location_manual}`,
-                    variant: "destructive"
+
+                // Calculate ID again to set selection (needs to match the one inside setData)
+                const phone = (message as any).phone;
+                const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
+                setSelectedId(liveCallId);
+
+                // Only show toast if NOT a recovery message
+                if (!(message as any).is_recovery) {
+                    toast({
+                        title: "Incoming Emergency Call",
+                        description: `Call from ${(message as any).location_manual}`,
+                        variant: "destructive"
+                    });
+                }
+            } else if ((message as any).event === "dispatch_update") {
+                // Dispatch update: mark the call as dispatched (services sent)
+                const phone = (message as any).phone;
+                const dispatchType = (message as any).dispatch_type || "Emergency Services";
+                const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
+
+                setData(prev => {
+                    if (prev[liveCallId]) {
+                        return {
+                            ...prev,
+                            [liveCallId]: {
+                                ...prev[liveCallId],
+                                responder_type: dispatchType + " Dispatched"
+                            }
+                        };
+                    }
+                    return prev;
                 });
             } else if (message.data) {
-                setData(message.data);
+                // DB Response: Contains Historical/Resolved calls.
+                // We must REMOVE live_session entries whose phone matches a DB record
+                // (meaning the call was archived), to prevent duplicate cards.
+                setData(prevData => {
+                    // Collect phones from DB data to detect archived calls
+                    const archivedPhones = new Set<string>();
+                    Object.values(message.data!).forEach(call => {
+                        if (call.phone && call.phone !== "Unknown") {
+                            archivedPhones.add(call.phone.replace(/[^0-9]/g, ""));
+                        }
+                    });
+
+                    // Keep live sessions ONLY if their phone is NOT in the archived set
+                    const activeSessions = Object.entries(prevData)
+                        .filter(([key]) => {
+                            if (!key.startsWith("live_session_")) return false;
+                            const sessionDigits = key.replace("live_session_", "");
+                            return !archivedPhones.has(sessionDigits);
+                        })
+                        .reduce((acc, [key, val]) => ({ ...acc, [key]: val }), {} as Record<string, Call>);
+
+                    return {
+                        ...activeSessions,
+                        ...message.data
+                    };
+                });
             } else if (message.event === "audio_relay" && (message as any).chunk) {
                 try {
                     const audio = new Audio("data:audio/webm;base64," + (message as any).chunk);
@@ -492,6 +714,14 @@ const Page = () => {
             <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-xl flex justify-between items-center pr-4">
                 <Header connected={connected} city={city} setCity={handleHeaderCityChange} filters={filters} />
                 <div className="flex space-x-2">
+                    <Button
+                        onClick={handleResetSystem}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-[10px] text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
+                    >
+                        Reset System
+                    </Button>
                     {!connected && (
                         <Button onClick={forceReconnect} variant="outline" size="sm" className="h-8 text-[10px] bg-red-900/20 text-red-500 border-red-900/50">
                             Reconnect
@@ -555,7 +785,7 @@ const Page = () => {
                                             <div className="flex items-start justify-between">
                                                 <div className="space-y-0.5">
                                                     <h3 className="text-base font-bold leading-tight text-white">{data[selectedId].title || "Untiled Case"}</h3>
-                                                    <p className="text-[10px] text-slate-500 font-medium">{data[selectedId].location_name}</p>
+                                                    <p className="text-[10px] text-slate-500 font-medium">{data[selectedId].city_state && data[selectedId].city_state !== "Unknown" ? data[selectedId].city_state : data[selectedId].location_name}</p>
                                                 </div>
                                                 <div className={cn(
                                                     "rounded p-1",
@@ -610,50 +840,118 @@ const Page = () => {
                                         <Separator className="bg-slate-800/50" />
 
                                         {/* Rapid Dispatch Section */}
-                                        <div className="space-y-2">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Rapid Dispatch</p>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    className="h-9 px-2 border-blue-900/30 bg-blue-950/20 text-blue-400 hover:bg-blue-900/30 text-[10px] gap-1.5"
-                                                    onClick={() => {
-                                                        toast({
-                                                            title: "Police Dispatched",
-                                                            description: `Units en route to ${data[selectedId].location_name}`
-                                                        });
-                                                        handleResolve(selectedId);
-                                                    }}
-                                                >
-                                                    <Siren size={12} /> Police
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="h-9 px-2 border-red-900/30 bg-red-950/20 text-red-400 hover:bg-red-900/30 text-[10px] gap-1.5"
-                                                    onClick={() => {
-                                                        toast({
-                                                            title: "Fire Dispatched",
-                                                            description: "Engine units responding."
-                                                        });
-                                                        handleResolve(selectedId);
-                                                    }}
-                                                >
-                                                    <FireExtinguisher size={12} /> Fire
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="h-9 px-2 border-green-900/30 bg-green-950/20 text-green-400 hover:bg-green-900/30 text-[10px] gap-1.5"
-                                                    onClick={() => {
-                                                        toast({
-                                                            title: "EMS Dispatched",
-                                                            description: "Paramedics en route."
-                                                        });
-                                                        handleResolve(selectedId);
-                                                    }}
-                                                >
-                                                    <Ambulance size={12} /> EMS
-                                                </Button>
-                                            </div>
-                                        </div>
+                                        {(() => {
+                                            const call = data[selectedId];
+                                            const isCallEnded = call?.severity === "RESOLVED" || call?.severity === "UNRESOLVED" || call?.status === "Disconnected";
+                                            const dispatched = (call as any)?.dispatched_services || [];
+
+                                            if (isCallEnded) {
+                                                // Call ended — show read-only dispatched services badges
+                                                return (
+                                                    <div className="space-y-2">
+                                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dispatched Services</p>
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <div className={cn(
+                                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                                dispatched.includes("Police")
+                                                                    ? "border-blue-500/40 bg-blue-950/30 text-blue-400"
+                                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                                            )}>
+                                                                <Siren size={12} />
+                                                                {dispatched.includes("Police") ? "✓ Police" : "Police"}
+                                                            </div>
+                                                            <div className={cn(
+                                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                                dispatched.includes("Fire")
+                                                                    ? "border-red-500/40 bg-red-950/30 text-red-400"
+                                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                                            )}>
+                                                                <FireExtinguisher size={12} />
+                                                                {dispatched.includes("Fire") ? "✓ Fire" : "Fire"}
+                                                            </div>
+                                                            <div className={cn(
+                                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                                dispatched.includes("EMS")
+                                                                    ? "border-green-500/40 bg-green-950/30 text-green-400"
+                                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                                            )}>
+                                                                <Ambulance size={12} />
+                                                                {dispatched.includes("EMS") ? "✓ EMS" : "EMS"}
+                                                            </div>
+                                                        </div>
+                                                        {dispatched.length === 0 && (
+                                                            <p className="text-[10px] text-slate-600 italic text-center">No services dispatched</p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            }
+
+                                            // Call is live — show active dispatch buttons
+                                            return (
+                                                <div className="space-y-2">
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Rapid Dispatch</p>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            disabled={dispatched.includes("Police")}
+                                                            className={cn(
+                                                                "h-9 px-2 text-[10px] gap-1.5",
+                                                                dispatched.includes("Police")
+                                                                    ? "border-slate-700 bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                                                                    : "border-blue-900/30 bg-blue-950/20 text-blue-400 hover:bg-blue-900/30"
+                                                            )}
+                                                            onClick={() => {
+                                                                toast({
+                                                                    title: "Police Dispatched",
+                                                                    description: `Units en route to ${data[selectedId].location_name}`
+                                                                });
+                                                                handleDispatch(selectedId, "Police");
+                                                            }}
+                                                        >
+                                                            <Siren size={12} /> {dispatched.includes("Police") ? "✓ Police" : "Police"}
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            disabled={dispatched.includes("Fire")}
+                                                            className={cn(
+                                                                "h-9 px-2 text-[10px] gap-1.5",
+                                                                dispatched.includes("Fire")
+                                                                    ? "border-slate-700 bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                                                                    : "border-red-900/30 bg-red-950/20 text-red-400 hover:bg-red-900/30"
+                                                            )}
+                                                            onClick={() => {
+                                                                toast({
+                                                                    title: "Fire Dispatched",
+                                                                    description: "Engine units responding."
+                                                                });
+                                                                handleDispatch(selectedId, "Fire");
+                                                            }}
+                                                        >
+                                                            <FireExtinguisher size={12} /> {dispatched.includes("Fire") ? "✓ Fire" : "Fire"}
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            disabled={dispatched.includes("EMS")}
+                                                            className={cn(
+                                                                "h-9 px-2 text-[10px] gap-1.5",
+                                                                dispatched.includes("EMS")
+                                                                    ? "border-slate-700 bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                                                                    : "border-green-900/30 bg-green-950/20 text-green-400 hover:bg-green-900/30"
+                                                            )}
+                                                            onClick={() => {
+                                                                toast({
+                                                                    title: "EMS Dispatched",
+                                                                    description: "Paramedics en route."
+                                                                });
+                                                                handleDispatch(selectedId, "EMS");
+                                                            }}
+                                                        >
+                                                            <Ambulance size={12} /> {dispatched.includes("EMS") ? "✓ EMS" : "EMS"}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 )}
                                 <button
@@ -673,7 +971,7 @@ const Page = () => {
                         call={selectedId ? data[selectedId] : emptyCall}
                         selectedId={selectedId || undefined}
                         handleTransfer={handleTransfer}
-                        handleResolve={handleResolve} // Passing resolve handler to unified sidebar
+                        handleResolve={handleDispatch} // Passing dispatch handler to unified sidebar
                         isManualMode={isManualMode}
                         toggleMute={toggleMute}
                         toggleHold={toggleHold}

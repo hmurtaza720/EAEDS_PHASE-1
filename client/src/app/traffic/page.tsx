@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { MESSAGES } from "@/data/mock_data";
 import { Call } from "@/data/types";
 import Sidebar from "@/components/live/Sidebar";
 import { MoreHorizontal, MessageSquare, Monitor, X, Phone, User, Bot, Clock } from "lucide-react";
@@ -16,11 +15,31 @@ const Map = dynamic(() => import("@/components/live/map/Map"), {
 });
 
 const TrafficPage = () => {
-    const calls = Object.values(MESSAGES);
-    // Default to the first call to "lock" the view open
-    const [selectedCallId, setSelectedCallId] = useState<string | null>(calls.length > 0 ? calls[0].id : null);
+    const [calls, setCalls] = useState<Call[]>([]);
+    const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
 
-    const selectedCall = selectedCallId ? MESSAGES[selectedCallId] : null;
+    useEffect(() => {
+        // Fetch calls from backend API (traffic endpoint: active + recently disconnected only)
+        const fetchCalls = async () => {
+            try {
+                const res = await fetch("http://127.0.0.1:8000/calls/traffic");
+                if (res.ok) {
+                    const data = await res.json();
+                    setCalls(data);
+                    if (data.length > 0 && !selectedCallId) setSelectedCallId(data[0].id);
+                }
+            } catch (e) {
+                console.error("Failed to fetch calls:", e);
+            }
+        };
+        fetchCalls();
+
+        // Auto-refresh every 30 seconds to remove calls past the 2-minute window
+        const interval = setInterval(fetchCalls, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const selectedCall = selectedCallId ? calls.find(c => c.id === selectedCallId) : null;
 
     // Helper to format time (mocking timezone for now)
     const formatTime = (isoString: string) => {
@@ -82,7 +101,7 @@ const TrafficPage = () => {
                                             : call.status === "Connected" ? "border-l-green-500 hover:border-l-green-400" : "border-l-slate-700 hover:border-l-slate-600"
                                     )}
                                 >
-                                    {/* Name */}
+                                    {/* Name & Phone */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">
                                             <div className={cn(
@@ -91,19 +110,26 @@ const TrafficPage = () => {
                                             )}>
                                                 {call.name.charAt(0)}
                                             </div>
-                                            <span className={cn(
-                                                "font-bold uppercase tracking-wide text-xs",
-                                                selectedCallId === call.id ? "text-blue-400" : "text-slate-300 group-hover:text-white"
-                                            )}>
-                                                {call.name}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className={cn(
+                                                    "font-bold uppercase tracking-wide text-xs",
+                                                    selectedCallId === call.id ? "text-blue-400" : "text-slate-300 group-hover:text-white"
+                                                )}>
+                                                    {call.name}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                                    {call.phone || "Unknown Number"}
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
 
                                     {/* Location */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-2 text-slate-300">
-                                            <span className="text-xs font-bold uppercase tracking-wide">{call.location_name}</span>
+                                            <span className="text-xs font-bold uppercase tracking-wide">
+                                                {call.city_state && call.city_state !== "Unknown" ? call.city_state : call.location_name}
+                                            </span>
                                         </div>
                                     </td>
 
@@ -186,8 +212,15 @@ const TrafficPage = () => {
                                     }]}
                                 />
                             ) : (
-                                <div className="flex h-full items-center justify-center text-slate-600 text-xs italic">
-                                    Location Unknown
+                                <div className="flex h-full flex-col items-center justify-center text-slate-500 text-xs italic space-y-1">
+                                    <span>📍</span>
+                                    <span className="font-bold text-slate-400 not-italic uppercase text-[10px] tracking-wider">
+                                        {selectedCall.city_state && selectedCall.city_state !== "Unknown"
+                                            ? selectedCall.city_state
+                                            : selectedCall.location_name && selectedCall.location_name !== "Unknown"
+                                                ? selectedCall.location_name
+                                                : "Location Pending..."}
+                                    </span>
                                 </div>
                             )}
                         </div>

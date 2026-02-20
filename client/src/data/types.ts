@@ -5,6 +5,7 @@ export type Call = {
     }[];
     id: string;
     location_name: string;
+    city_state?: string;
     location_coords?: {
         lat: number;
         lng: number;
@@ -13,7 +14,7 @@ export type Call = {
     name: string;
     phone: string;
     recommendation: string;
-    severity?: "CRITICAL" | "MODERATE" | "RESOLVED";
+    severity?: "CRITICAL" | "MODERATE" | "RESOLVED" | "UNRESOLVED";
     summary: string;
     time: string; // ISO Date String
     title?: string;

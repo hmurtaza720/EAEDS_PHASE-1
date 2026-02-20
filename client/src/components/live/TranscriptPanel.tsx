@@ -10,6 +10,8 @@ import {
     History,
     Play,
     Volume2,
+    Phone,
+    ExternalLink,
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -18,13 +20,15 @@ import ChatInterface from "./ChatInterface";
 
 interface TranscriptPanelProps extends CallProps {
     handleTransfer: (id: string) => void;
-    handleResolve: (id: string) => void;
+    handleResolve: (id: string, dispatchType?: string) => void;
     mode?: "live" | "archive";
     toggleMute?: () => void;
     toggleHold?: () => void;
     handleHangup?: () => void;
     isMuted?: boolean;
     isOnHold?: boolean;
+    relatedCalls?: { id: string; title: string; time: string }[];
+    onSelectRelatedCall?: (id: string) => void;
 }
 
 import { Mic, MicOff, Pause, PhoneOff } from "lucide-react"; // Import new icons
@@ -41,6 +45,8 @@ const TranscriptPanel = ({
     handleHangup,
     isMuted = false,
     isOnHold = false,
+    relatedCalls = [],
+    onSelectRelatedCall,
 }: TranscriptPanelProps) => {
     const [loading, setLoading] = useState(false);
 
@@ -106,6 +112,36 @@ const TranscriptPanel = ({
                         <ChatInterface call={call} selectedId={selectedId} />
                     </div>
                 </div>
+
+                {/* Related Calls Section (Archive Mode Only) */}
+                {mode === "archive" && relatedCalls && relatedCalls.length > 0 && (
+                    <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-950/10 p-3">
+                        <div className="flex items-center space-x-2">
+                            <Phone size={12} className="text-amber-400" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                                Related Calls ({relatedCalls.length})
+                            </p>
+                        </div>
+                        <p className="text-[10px] text-slate-400 italic">Same caller has other calls on record:</p>
+                        <div className="space-y-1.5">
+                            {relatedCalls.map((rc) => (
+                                <button
+                                    key={rc.id}
+                                    onClick={() => onSelectRelatedCall?.(rc.id)}
+                                    className="w-full flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-left hover:bg-slate-700/50 hover:border-amber-500/30 transition-all group"
+                                >
+                                    <div>
+                                        <p className="text-[11px] font-semibold text-slate-200 group-hover:text-amber-300 transition-colors">{rc.title}</p>
+                                        <p className="text-[9px] text-slate-500 font-mono">
+                                            {new Date(rc.time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                    <ExternalLink size={12} className="text-slate-500 group-hover:text-amber-400 transition-colors" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* 6. Call Recording (Archive Mode Only) */}
                 {/* 6. Call Recording (Archive Mode Only) - REMOVED per user request */}

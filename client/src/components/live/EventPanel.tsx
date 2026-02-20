@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, Filter, Search, ShieldCheck } from "lucide-react";
+import { AlertCircle, AlertTriangle, Filter, Search, ShieldCheck, Phone } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -196,15 +196,28 @@ const EventPanel = ({
                         <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Critical</div>
                     </div>
                     <div className="h-10 w-[1px] bg-slate-700" />
-                    <div className="text-center">
-                        <div className="text-2xl font-black text-green-500">
+                    <div
+                        className={cn(
+                            "text-center cursor-pointer hover:bg-slate-700/50 rounded-lg p-1 transition-all",
+                            filters?.severity === "UNRESOLVED" && "bg-orange-500/10 border border-orange-500/30"
+                        )}
+                        onClick={() => {
+                            if (onFilterChange && filters) {
+                                onFilterChange({
+                                    ...filters,
+                                    severity: filters.severity === "UNRESOLVED" ? "ALL" : "UNRESOLVED"
+                                });
+                            }
+                        }}
+                    >
+                        <div className="text-2xl font-black text-orange-500">
                             {(countersData || data)
                                 ? Object.entries(countersData || data!).filter(
-                                    ([_, value]) => value.severity === "RESOLVED",
+                                    ([_, value]) => value.severity === "UNRESOLVED",
                                 ).length
                                 : "-"}
                         </div>
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Resolved</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Unresolved</div>
                     </div>
                 </div>
             )}
@@ -236,17 +249,25 @@ const EventPanel = ({
                                 {emergency.severity === "MODERATE" && (
                                     <AlertTriangle className="mr-4 h-6 w-6 text-orange-500" />
                                 )}
-                                {emergency.severity === "RESOLVED" && (
-                                    <ShieldCheck className="mr-4 h-6 w-6 text-green-500" />
+                                {emergency.severity === "UNRESOLVED" && (
+                                    <AlertTriangle className="mr-4 h-6 w-6 text-orange-500" />
                                 )}
-                                <CardContent className="flex-grow p-0">
-                                    <div className={cn("text-sm font-bold uppercase tracking-wide", selectedId === emergency.id ? "text-blue-400" : "text-slate-200")}>
-                                        {emergency.title}
-                                    </div>
-                                    <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
-                                        <span className="font-mono" suppressHydrationWarning>
-                                            {new Date(emergency.time).toLocaleTimeString()}
-                                        </span>
+                                <CardContent className="flex-grow p-0 space-y-1.5 mt-1">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex flex-col space-y-0.5">
+                                            <div className={cn("text-sm font-bold uppercase tracking-wide leading-tight", selectedId === emergency.id ? "text-blue-400" : "text-slate-200")}>
+                                                {emergency.title}
+                                            </div>
+                                            {emergency.phone && emergency.phone !== "Unknown" && (
+                                                <div className="flex items-center space-x-1.5 text-[10px] text-slate-400 font-mono mt-0.5">
+                                                    <Phone size={10} className="text-blue-500" />
+                                                    <span className="opacity-90">{emergency.phone}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 font-mono shrink-0 ml-2" suppressHydrationWarning>
+                                            {new Date(emergency.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
                                     </div>
                                 </CardContent>
                                 {emergency.severity ? (
@@ -255,7 +276,9 @@ const EventPanel = ({
                                             "ml-2 min-w-fit rounded-sm px-2 py-0.5 text-[10px] uppercase tracking-wider",
                                             emergency.severity === "CRITICAL"
                                                 ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                                                : "bg-green-500/10 text-green-500 border border-green-500/20"
+                                                : emergency.severity === "UNRESOLVED"
+                                                    ? "bg-orange-500/10 text-orange-500 border border-orange-500/20"
+                                                    : "bg-green-500/10 text-green-500 border border-green-500/20"
                                         )}
                                     >
                                         {emergency.severity}

@@ -1,0 +1,126 @@
+
+--- EXTRACTING: 4. FYP 1 Proposal Defence PPT.pdf ---
+
+Emotion-Aware Emergency Dispatch 
+System
+     Team lead: Abdullah shaikh (DS221042)
+     Member 1: Murtaza hassan (DS221026)
+Member 2: Muhammad Baqar (DS221043)
+     Member 3: Tahir mehdi (DS221011)
+      Supervisor : Shehla Andleeb
+      Co-Supervisor : Mashal tariq
+ 
+FYP
+Proposal
+DHA Suffa University
+
+Summary 
+◻ Problem Statement 
+◻ Business Objectives
+◻ Project Scope
+◻ Project methodology
+◻ Project Schedule (Time lines)
+◻ Budget / Costing
+◻ Project tools or H/W required 
+◻ FYP Deliverables 
+◻ References 
+Emotion-Aware Emergency Dispatch System
+2
+DS-FYP    DHA Suffa University 
+1- Problem Statement 
+◻ Huge Staff Shortages: Most 911 centers are missing over 80% of the people 
+they need. The few workers left are totally exhausted.
+◻ Too Much Pressure: Because they’re overwhelmed by calls, it’s easy for 
+operators to make mistakes or take longer to send help.
+◻ Missing the Big Picture: Since they can only hear audio, it’s hard for 
+dispatchers to judge how bad a situation really is based on a caller's tone.
+◻ Too Much Manual Work: Typing everything in by hand wastes precious 
+seconds that people in an emergency don't have.
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+3
+
+2- Business Objectives 
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+◻ Operational Efficiency: Handle 30% more calls with existing staffing levels by 
+automating data entry and triage.
+◻ Cost Reduction: Eliminate recurring Cloud API fees by pivoting to a one-time 
+Local GPU investment.
+◻ Performance Targets:
+◻ Latency: Transcription < 2 seconds.
+◻ Uptime: 99.9% (Fully offline-capable).
+◻ Accuracy: >80% alignment with human emotion consensus.
+4
+
+3- Project Scope 
+Scope Includes: • Real-time call transcription (Whisper) • Emotion detection using text & voice        (BERT + OpenSMILE) • Response generation using Fine-Tuned LLM • Dispatcher dashboard with map and live chat • Free open-source deployment (no paid APIs)Scope Excludes: • No real ambulance dispatch • No Multilingual support • No integration with real 911 systems  (due to government control, cost, API limitations)
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+5
+
+3- Project Methodology 
+◻ We adopted Agile methodology for flexibility and low risk.
+◻ Project divided into modules: transcription, emotion detection, LLM, and 
+dashboard.
+◻ Weekly progress and testing handled in sprints across 30 weeks.
+◻ Team Roles:
+ • Abdullah Shaikh – Fine Tuning LLM & BERT
+ • Murtaza Hassan – Backend(Fast API Server) 
+ • Muhammad Baqar – Frontend Dashboard & UI
+ • Tahir Mehdi – Voice Pipeline & TTS Integration
+◻ Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+6
+
+4- Project Schedule   
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+7
+Phase Timeline Activity / Milestone Resource (Owner) Status
+1. Requirements Aug '25 SRS/SDS, Feasibility Abdullah (Lead) Completed
+2. Architecture Sep '25 Database (SQLite), API Design Murtaza, Abdullah Completed
+3. Frontend Oct '25 Midnight Dashboard, UI/UX Abdullah, Baqar Completed
+4. Backend Nov-Jan '25 FastAPI, WebSockets Murtaza, Tahir Completed
+5. AI Integration Feb '26 Whisper & OpenSMILE Setup Tahir (AIl) In Progress
+6. Fine-Tuning Mar-May '26 LLM / Training Murtaza, Abdullah Planned
+7. Testing May-June '26 UAT, Final Report Baqar (QA), All Planned
+
+5- Project tools (or Hardware required) 
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+8
+Area Tools Used
+Programming Python (Backend), TypeScript (Frontend)
+AI Libraries Faster-Whisper (STT), Fine-Tuned(LLM), OpenSMILE (Emotion)
+Frontend React, Next.js, Tailwind CSS
+Backend/API FastAPI, WebSockets (for real-time audio)
+Dataset 911 calls (500) , SQLite (Lightweight, File-based)
+TTS Engine Mozilla TTS
+Live Calling WebSockets
+Mapping Leaflet.js (Offline-capable maps)
+Hardware Local NVIDIA GPU (Running generic CUDA)
+6- Budget / Costing 
+Budget Breakdown
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+9
+Item Cost (PKR)
+GPU Workstation (One-Time) 250,000
+Peripheral Equipment 15,000
+Software Licenses 0 (Open Source)
+Total Estimated Cost 265,000
+7- FYP  Deliverables 
+◻ Operational Dispatcher Dashboard (Next.js & Real-time Maps).
+◻ Local-First System Architecture (Design & Backend Logic) .
+◻ Real-Time Audio Pipeline (WebSocket integration) .
+◻ Emergency Triage Logic (Standard Operating Procedures) .
+◻ Dataset & Documentation (SRS, SDS, User Manual) .
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+10
+
+8- Reference 
+◻ AudEERING GmbH. "OpenSMILE Documentation." Munich: AudEERING, 2020.
+◻ Huang, Jeremy, et al. "Whisper and ASR Systems." arXiv preprint 
+arXiv:2009.xxxxx (2020).
+◻ Rajput, D., and H. Singh. "BERT for Emotion Classification." Procedia Computer 
+Science 218 (2023): 15-24.
+◻ Reddy, Sandeep, and S. Kompalli. "Emotion Detection using Multimodal 
+Analysis." Journal of AI & Ethics 3, no. 1 (2022): 45-58.
+Emotion-Aware Emergency Dispatch System DS-FYP    DHA Suffa University 
+11
+
+

@@ -25,32 +25,46 @@ class DatabaseManager:
                 duration_seconds INTEGER
             )
         ''')
+        
+        # Add column if it doesn't exist (version upgrade)
+        try:
+            cursor.execute("ALTER TABLE calls ADD COLUMN caller_phone TEXT")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+        try:
+            cursor.execute("ALTER TABLE calls ADD COLUMN caller_city_state TEXT")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+        try:
+            cursor.execute("ALTER TABLE calls ADD COLUMN severity TEXT DEFAULT 'RESOLVED'")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+        try:
+            cursor.execute("ALTER TABLE calls ADD COLUMN dispatched_services TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+            
         conn.commit()
         conn.close()
         print(f" [DB] Database initialized at {DB_PATH}")
 
-    def save_call(self, transcript_list: list, emotion: str, location: str):
+    def save_call(self, transcript_list: list, emotion: str, location: str, phone: str = "Unknown", city_state: str = "Unknown", severity: str = "RESOLVED", dispatched_services: str = ""):
         """Saves a completed call to the database."""
         call_id = str(uuid.uuid4())
         ended_at = datetime.now()
-        # Assume start time is roughly when the first message arrived, or just now for simplicity if list is empty
-        # A better way would be to track start time in the session.
-        # For now, we'll just set started_at to ended_at for simplicity unless we pass it in.
         started_at = ended_at # Simplified for now
-        
-        # Calculate duration? We'll leave it as 0 for now.
         
         transcript_json = json.dumps(transcript_list)
         
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO calls (id, started_at, ended_at, caller_location, detected_emotion, transcript, duration_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (call_id, started_at, ended_at, location, emotion, transcript_json, 0))
+            INSERT INTO calls (id, started_at, ended_at, caller_location, detected_emotion, transcript, duration_seconds, caller_phone, caller_city_state, severity, dispatched_services)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (call_id, started_at, ended_at, location, emotion, transcript_json, 0, phone, city_state, severity, dispatched_services))
         conn.commit()
         conn.close()
-        print(f" [DB] Call saved: {call_id} | Emotion: {emotion}")
+        print(f" [DB] Call saved: {call_id} | Emotion: {emotion} | Phone: {phone} | Severity: {severity} | Dispatched: {dispatched_services}")
         return call_id
 
     def get_recent_calls(self, limit=10):
