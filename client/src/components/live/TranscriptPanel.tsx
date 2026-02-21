@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CallProps } from "@/app/live/page";
+import { CallProps } from "@/data/types";
 import { cn } from "@/lib/utils";
 import {
     ArrowLeftRightIcon,
@@ -12,6 +12,8 @@ import {
     Volume2,
     Phone,
     ExternalLink,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -29,6 +31,9 @@ interface TranscriptPanelProps extends CallProps {
     isOnHold?: boolean;
     relatedCalls?: { id: string; title: string; time: string }[];
     onSelectRelatedCall?: (id: string) => void;
+    isManualMode?: boolean;
+    isMapOverlayOpen?: boolean;
+    onToggleMapOverlay?: () => void;
 }
 
 import { Mic, MicOff, Pause, PhoneOff } from "lucide-react"; // Import new icons
@@ -47,6 +52,8 @@ const TranscriptPanel = ({
     isOnHold = false,
     relatedCalls = [],
     onSelectRelatedCall,
+    isMapOverlayOpen,
+    onToggleMapOverlay,
 }: TranscriptPanelProps) => {
     const [loading, setLoading] = useState(false);
 
@@ -68,6 +75,15 @@ const TranscriptPanel = ({
             {/* 1. Header & Live Connection Status */}
             <div className="flex items-center justify-between px-4 py-3 bg-slate-950/50">
                 <div className="flex items-center space-x-2">
+                    {onToggleMapOverlay && (
+                        <button
+                            onClick={onToggleMapOverlay}
+                            title={isMapOverlayOpen ? "Collapse Map Details" : "Expand Map Details"}
+                            className="flex h-5 w-5 items-center justify-center rounded-sm bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700 mr-1"
+                        >
+                            {isMapOverlayOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                        </button>
+                    )}
                     <History size={16} className="text-blue-400" />
                     <p className="text-xs font-bold uppercase tracking-widest text-slate-300">Action Sidebar</p>
                 </div>

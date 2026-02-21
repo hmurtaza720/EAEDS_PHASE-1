@@ -8,7 +8,7 @@ import { FilterState } from "@/components/live/EventPanel";
 import { US_STATES, CITY_COORDS } from "@/data/constants";
 import { Call } from "@/data/types";
 import TranscriptPanel from "@/components/live/TranscriptPanel";
-import { ChevronRight, ChevronLeft, Info, BrainCircuit, Siren, FireExtinguisher, Ambulance } from "lucide-react";
+import { ChevronRight, ChevronLeft, Info, BrainCircuit, Siren, FireExtinguisher, Ambulance, Phone } from "lucide-react";
 import EmotionCard from "@/components/live/EmotionCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -78,16 +78,78 @@ const Page = () => {
     const [filters, setFilters] = useState<FilterState>({
         stateCode: "ALL",
         city: "ALL",
-        emotion: "ALL",
-        type: "ALL",
+        timeRange: "ALL",
+        status: "ALL",
         severity: "ALL"
     });
+    const [searchedLocation, setSearchedLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
     const [isOverlayOpen, setIsOverlayOpen] = useState(true);
     const { toast } = useToast();
 
     // WebSocket Ref
     const wsRef = React.useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    // Toast deduplication: prevent showing the same toast within 3 seconds
+    const lastToastRef = React.useRef<Record<string, number>>({});
+    const showDedupedToast = (key: string, toastArgs: Parameters<typeof toast>[0]) => {
+        const now = Date.now();
+        if (lastToastRef.current[key] && now - lastToastRef.current[key] < 3000) {
+            return; // Skip duplicate
+        }
+        lastToastRef.current[key] = now;
+        toast(toastArgs);
+    };
+
+    // Track what location_name was last geocoded per call, to detect changes
+    const geocodedNamesRef = React.useRef<Record<string, string>>({});
+
+    // Effect to Geocode Textual Locations coming from the LLM
+    useEffect(() => {
+        const geocodeLocations = async () => {
+            let updated = false;
+            const newData = { ...data };
+
+            for (const [id, call] of Object.entries(newData)) {
+                // If we have a location name from the LLM...
+                if (call.location_name && call.location_name !== "Unknown" && call.location_name !== "Detecting...") {
+                    // Geocode if: no coords yet, coords are 0/0, OR the name changed since last geocode
+                    const needsGeocode = !call.location_coords
+                        || (call.location_coords.lat === 0 && call.location_coords.lng === 0)
+                        || (geocodedNamesRef.current[id] !== call.location_name);
+
+                    if (needsGeocode) {
+                        try {
+                            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(call.location_name)}&format=json&limit=1`);
+                            const geoData = await res.json();
+
+                            if (geoData && geoData.length > 0) {
+                                newData[id] = {
+                                    ...call,
+                                    location_coords: {
+                                        lat: parseFloat(geoData[0].lat),
+                                        lng: parseFloat(geoData[0].lon)
+                                    }
+                                };
+                                geocodedNamesRef.current[id] = call.location_name;
+                                updated = true;
+                                console.log(`📍 [Geocode] ${call.location_name} → ${geoData[0].lat}, ${geoData[0].lon}`);
+                            }
+                        } catch (err) {
+                            console.error("Failed to geocode LLM location:", err);
+                        }
+                    }
+                }
+            }
+            if (updated) {
+                setData(newData);
+            }
+        };
+
+        // Adding a slight debounce to avoid slamming the Nominatim API
+        const timeoutId = setTimeout(geocodeLocations, 1000);
+        return () => clearTimeout(timeoutId);
+    }, [data]);
 
     // Manual Reconnect Function
     const forceReconnect = () => {
@@ -152,15 +214,22 @@ const Page = () => {
             if (!loc.includes(filters.city.toLowerCase())) match = false;
         }
 
-        if (match && filters.emotion !== "ALL") {
-            const hasEmotion = call.emotions?.some(e => e.emotion === filters.emotion);
-            if (!hasEmotion) match = false;
+        if (match && filters.timeRange !== "ALL") {
+            const callTime = new Date(call.time).getTime();
+            const now = Date.now();
+            let cutoff = now;
+            switch (filters.timeRange) {
+                case "1d": cutoff = now - 24 * 60 * 60 * 1000; break;
+                case "3d": cutoff = now - 3 * 24 * 60 * 60 * 1000; break;
+                case "1w": cutoff = now - 7 * 24 * 60 * 60 * 1000; break;
+                case "1m": cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
+                case "1y": cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
+            }
+            if (callTime < cutoff) match = false;
         }
 
-        if (match && filters.type !== "ALL") {
-            const typeMatch = (call.type?.toLowerCase() === filters.type.toLowerCase()) ||
-                (call.title?.toLowerCase().includes(filters.type.toLowerCase()));
-            if (!typeMatch) match = false;
+        if (match && filters.status !== "ALL") {
+            if (call.severity !== filters.status) match = false;
         }
 
         if (match) {
@@ -170,20 +239,11 @@ const Page = () => {
             }
             // UNRESOLVED calls: show them but auto-expire after 2 minutes
             else if (call.severity === "UNRESOLVED") {
-                if (filters.severity === "UNRESOLVED" || filters.severity === "ALL") {
-                    // Check if the call has expired (2 min after ended_at)
-                    const endedAt = new Date(call.time).getTime();
-                    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-                    if (endedAt < twoMinutesAgo) {
-                        match = false; // Expired, hide it
-                    }
-                } else {
-                    match = false; // Severity filter doesn't match
+                const endedAt = new Date(call.time).getTime();
+                const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+                if (endedAt < twoMinutesAgo) {
+                    match = false; // Expired, hide it
                 }
-            }
-            // CRITICAL or active calls: apply severity filter
-            else if (filters.severity !== "ALL" && call.severity !== filters.severity) {
-                match = false;
             }
         }
 
@@ -238,7 +298,7 @@ const Page = () => {
 
     const handleHeaderCityChange = (newCity: string) => {
         setCity(newCity);
-        setFilters(prev => ({ ...prev, stateCode: newCity, city: "ALL", severity: "ALL" }));
+        setFilters(prev => ({ ...prev, stateCode: newCity, city: "ALL" }));
     };
 
 
@@ -246,7 +306,9 @@ const Page = () => {
         setSelectedId(id === selectedId ? undefined : id);
     };
 
-    const handleDispatch = (id: string, dispatchType: string) => {
+    const handleDispatch = (id: string, dispatchType?: string) => {
+        if (!dispatchType) return;
+
         // Guard: don't dispatch on ended calls
         const call = data[id];
         if (call?.severity === "RESOLVED" || call?.severity === "UNRESOLVED" || call?.status === "Disconnected") {
@@ -399,7 +461,7 @@ const Page = () => {
             }));
         }
 
-        toast({ title: "Call Ended", description: "Disconnected from caller.", variant: "destructive" });
+        // Toast is handled by the WebSocket end_call event handler — no duplicate here
     };
 
     // Removed redundant useEffect causing 'setCenter' error - useMemo handles this logic.
@@ -459,7 +521,7 @@ const Page = () => {
                     // Let's rely on "live_session_1" BUT ensure it's overwritten by incoming_call correctly.
 
                     const phone = (message as any).phone;
-                    const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
+                    const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
                     const currentCall = prevData[liveCallId] || {
                         ...emptyCall,
                         id: liveCallId,
@@ -534,7 +596,10 @@ const Page = () => {
 
                     let newLocation = currentCall.location_coords;
                     let newLocationName = currentCall.location_name;
-                    if (message.location && Array.isArray(message.location)) {
+                    if (message.location && typeof message.location === "string" && message.location !== "Unknown") {
+                        // Optimistically set the name. The coords will be geocoded by a separate effect.
+                        newLocationName = message.location;
+                    } else if (message.location && Array.isArray(message.location)) {
                         newLocation = { lat: message.location[0], lng: message.location[1] };
                         newLocationName = "Detected Location";
                     }
@@ -553,6 +618,16 @@ const Page = () => {
                         // Optionally trigger toast here or outside
                     }
 
+                    // Handle dispatched_services from LLM
+                    let newDispatchedServices = currentCall.dispatched_services || [];
+                    const incomingServices = (message as any).dispatched_services;
+                    if (incomingServices && Array.isArray(incomingServices) && incomingServices.length > 0) {
+                        const merged = new Set([...newDispatchedServices, ...incomingServices]);
+                        newDispatchedServices = Array.from(merged);
+                        // Mark as RESOLVED once any service is dispatched
+                        newSeverity = "RESOLVED";
+                    }
+
                     return {
                         ...prevData,
                         [liveCallId]: {
@@ -563,7 +638,8 @@ const Page = () => {
                             location_name: newLocationName,
                             city_state: newCityState,
                             status: newStatus,
-                            severity: newSeverity
+                            severity: newSeverity,
+                            dispatched_services: newDispatchedServices
                         }
                     };
                 });
@@ -571,17 +647,27 @@ const Page = () => {
 
                 // Recalculate ID for selection logic since we are outside setData scope
                 const phone = (message as any).phone;
-                const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
+                const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
 
                 if (!selectedId) {
                     setSelectedId(liveCallId);
                 }
 
                 if ((message as any).end_call) {
-                    toast({
+                    showDedupedToast('call_ended', {
                         title: "Call Ended",
                         description: "The call has been resolved and archived.",
-                        variant: "default" // or success style
+                        variant: "default"
+                    });
+                }
+
+                // Notify when LLM dispatches services
+                const dispatchedNow = (message as any).dispatched_services;
+                if (dispatchedNow && Array.isArray(dispatchedNow) && dispatchedNow.length > 0) {
+                    showDedupedToast(`dispatch_${dispatchedNow.join(',')}`, {
+                        title: "🚨 Units Dispatched",
+                        description: `AI dispatched: ${dispatchedNow.join(', ')}`,
+                        variant: "default"
                     });
                 }
             } else if (message.event === "incoming_call") {
@@ -589,12 +675,12 @@ const Page = () => {
                 // FORCE RESET: When a new call comes in, we must wipe the previous state.
                 setData(prevData => {
                     const phone = (message as any).phone;
-                    const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1"; // We reuse this ID for the main view
+                    const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
 
                     // Create a FRESH object, do not merge with old transcript
                     const newCallData: Call = {
                         ...emptyCall,
-                        id: liveCallId, // Keep UI ID constant for now
+                        id: liveCallId,
                         phone: (message as any).phone,
                         title: "Incoming 911 Call",
                         name: `Caller ${(message as any).phone || "Unknown"}`,
@@ -606,7 +692,7 @@ const Page = () => {
                         // Reset Transcript completely
                         transcript: [{ role: "assistant", content: "911 dispatch connected. Tracking location..." }],
                         status: "Connected",
-                        responder_type: "AI Agent",
+                        responder_type: "AI",
                         // Map the explicit emotion from incoming_call
                         emotions: (message as any).emotion ? [{
                             emotion: (message as any).emotion,
@@ -622,12 +708,12 @@ const Page = () => {
 
                 // Calculate ID again to set selection (needs to match the one inside setData)
                 const phone = (message as any).phone;
-                const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
+                const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
                 setSelectedId(liveCallId);
 
-                // Only show toast if NOT a recovery message
+                // Only show toast if NOT a recovery message, with deduplication
                 if (!(message as any).is_recovery) {
-                    toast({
+                    showDedupedToast('incoming_call', {
                         title: "Incoming Emergency Call",
                         description: `Call from ${(message as any).location_manual}`,
                         variant: "destructive"
@@ -637,7 +723,7 @@ const Page = () => {
                 // Dispatch update: mark the call as dispatched (services sent)
                 const phone = (message as any).phone;
                 const dispatchType = (message as any).dispatch_type || "Emergency Services";
-                const liveCallId = phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1";
+                const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
 
                 setData(prev => {
                     if (prev[liveCallId]) {
@@ -711,8 +797,8 @@ const Page = () => {
 
     return (
         <div className="flex h-full flex-col space-y-1 selection:bg-blue-500/30">
-            <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-xl flex justify-between items-center pr-4">
-                <Header connected={connected} city={city} setCity={handleHeaderCityChange} filters={filters} />
+            <div className="rounded-xl border border-slate-800 bg-slate-900 shadow-xl flex justify-between items-center pr-4 relative z-[2000] drop-shadow-2xl">
+                <Header connected={connected} city={city} setCity={handleHeaderCityChange} filters={filters} onLocationSearch={setSearchedLocation} />
                 <div className="flex space-x-2">
                     <Button
                         onClick={handleResetSystem}
@@ -744,10 +830,11 @@ const Page = () => {
                 </div>
 
                 {/* Column 2: Map Workspace */}
-                <div className="relative flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20 shadow-2xl">
+                <div className="relative flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20 shadow-2xl z-[10]">
                     <Map
                         center={center}
                         zoom={zoom}
+                        searchedLocation={searchedLocation}
                         selectedCoordinates={
                             selectedId && data[selectedId]?.location_coords
                                 ? [data[selectedId].location_coords?.lat!, data[selectedId].location_coords?.lng!]
@@ -774,18 +861,29 @@ const Page = () => {
                     {/* Collapsible Overlay */}
                     {selectedId && data[selectedId] && (
                         <div className={cn(
-                            "absolute right-0 top-4 z-[1000] flex items-center transition-all duration-300 ease-in-out",
-                            isOverlayOpen ? "translate-x-0" : "translate-x-[calc(100%-44px)]"
+                            "absolute right-[-8px] top-4 z-[1000] flex items-center transition-all duration-300 ease-in-out",
+                            isOverlayOpen ? "translate-x-0" : "translate-x-[calc(100%+20px)]"
                         )}>
                             <div className="flex flex-row items-center space-x-1">
                                 {isOverlayOpen && (
-                                    <div className="flex w-80 flex-col space-y-3 rounded-2xl border border-slate-800 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-right-4">
+                                    <div className="flex w-80 flex-col space-y-3 rounded-2xl border border-slate-700/50 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-right-4">
                                         {/* Incident Header */}
                                         <div className="space-y-1">
                                             <div className="flex items-start justify-between">
                                                 <div className="space-y-0.5">
                                                     <h3 className="text-base font-bold leading-tight text-white">{data[selectedId].title || "Untiled Case"}</h3>
                                                     <p className="text-[10px] text-slate-500 font-medium">{data[selectedId].city_state && data[selectedId].city_state !== "Unknown" ? data[selectedId].city_state : data[selectedId].location_name}</p>
+                                                    {data[selectedId].phone && data[selectedId].phone !== "Unknown" && (
+                                                        <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                                                            <Phone size={10} className="text-blue-400" />
+                                                            <span className="font-mono">{data[selectedId].phone}</span>
+                                                        </div>
+                                                    )}
+                                                    {data[selectedId].id && (
+                                                        <div className="flex items-center space-x-1 text-[10px] text-slate-500/80 pt-0.5">
+                                                            <span className="font-mono bg-slate-800/50 px-1.5 py-0.5 rounded text-[9px] border border-slate-700/50">{data[selectedId].id}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className={cn(
                                                     "rounded p-1",
@@ -954,12 +1052,7 @@ const Page = () => {
                                         })()}
                                     </div>
                                 )}
-                                <button
-                                    onClick={() => setIsOverlayOpen(!isOverlayOpen)}
-                                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-900/90 border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white shadow-lg transition-all"
-                                >
-                                    {isOverlayOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-                                </button>
+
                             </div>
                         </div>
                     )}
@@ -978,6 +1071,8 @@ const Page = () => {
                         isMuted={isMuted}
                         isOnHold={isOnHold}
                         handleHangup={handleHangup}
+                        isMapOverlayOpen={isOverlayOpen}
+                        onToggleMapOverlay={() => setIsOverlayOpen(!isOverlayOpen)}
                     />
                 </div>
             </div>

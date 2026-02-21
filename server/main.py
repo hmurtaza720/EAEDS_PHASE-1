@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from server.database.db_manager import DatabaseManager
@@ -56,7 +57,7 @@ def get_history():
     if hasattr(app, "active_simulations"):
         for phone, sim in app.active_simulations.items():
             formatted_calls.append({
-                "id": f"live_{phone}", # distinctive ID
+                "id": sim.get("id", f"live_{phone}"), # distinctive ID
                 "title": "🔴 Live Emergency",
                 "name": f"Caller {phone}",
                 "location_name": sim.get("location", "Unknown"),
@@ -110,7 +111,7 @@ def get_traffic_calls():
     if hasattr(app, "active_simulations"):
         for phone, sim in app.active_simulations.items():
             formatted_calls.append({
-                "id": f"live_{phone}",
+                "id": sim.get("id", f"live_{phone}"),
                 "title": "🔴 Live Emergency",
                 "name": f"Caller {phone}",
                 "location_name": sim.get("location", "Unknown"),
@@ -511,6 +512,7 @@ async def test_chat_proxy(req: TestChatRequest):
     
     if req.reset or not current_sim:
         app.active_simulations[req.phone] = {
+            "id": DatabaseManager.generate_call_id(req.phone, datetime.now(), f"{req.city}, {req.state}" if req.city and req.city != "Unknown" else "Unknown"),
             "start_time": datetime.now(),
             "transcript": [],
             "emotion": req.emotion,
@@ -525,6 +527,7 @@ async def test_chat_proxy(req: TestChatRequest):
         # Broadcast New Call Event immediately to reset Frontend
         await manager.broadcast(json.dumps({
             "event": "incoming_call",
+            "id": current_sim.get("id"),
             "phone": req.phone,
             "location_manual": current_sim["location"],
             "city_state": current_sim["city_state"],
@@ -555,7 +558,8 @@ async def test_chat_proxy(req: TestChatRequest):
                 phone=req.phone,
                 city_state=current_sim.get("city_state", "Unknown"),
                 severity=call_severity,
-                dispatched_services=dispatched_list
+                dispatched_services=dispatched_list,
+                call_id=current_sim.get("id")
             )
             print(f" 💾 [Proxy] Manual Save to DB: {call_id} | Severity: {call_severity} | Dispatched: {dispatched_list}")
             
@@ -566,6 +570,7 @@ async def test_chat_proxy(req: TestChatRequest):
             await manager.broadcast(json.dumps({
                 "event": "ai_response",
                 "end_call": True,
+                "id": call_id,
                 "phone": req.phone,
                 "text": "Call ended by dispatcher.",
                 "user_text": "",
@@ -629,45 +634,87 @@ async def test_chat_proxy(req: TestChatRequest):
             return {"spoken_response": "⚠️ Error: Colab API Down or Invalid URL.", "trigger_map": False}
             
         ai_data = resp.json()
-        full_response = ai_data.get("response", "")
+        clean_response = ai_data.get("response", "")
+        raw_llm_output = ai_data.get("raw_llm_output", "")
+        extracted_location = ai_data.get("location_extracted", "")
+        dispatched_services = ai_data.get("dispatched_services", [])
+        end_call_flag = ai_data.get("end_call", False)
         
-        # Append AI Message moved to AFTER parsing to ensure clean_response is saved
+        # Capture full Colab JSON payload for debugging
+        full_colab_payload = json.dumps(ai_data, indent=2, default=str)
+        
+        # ========== DEBUG LOG: Save raw Colab response locally ==========
+        try:
+            import sqlite3 as _sqlite3
+            log_db_path = os.path.join(os.path.dirname(__file__), "database", "llm_proxy_log.db")
+            log_conn = _sqlite3.connect(log_db_path)
+            log_conn.execute('''CREATE TABLE IF NOT EXISTS proxy_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT,
+                phone TEXT,
+                user_message TEXT,
+                raw_llm_output TEXT,
+                clean_response TEXT,
+                location_extracted TEXT,
+                dispatched_services TEXT,
+                end_call INTEGER
+            )''')
+            log_conn.execute(
+                'INSERT INTO proxy_logs (timestamp, phone, user_message, raw_llm_output, clean_response, location_extracted, dispatched_services, end_call) VALUES (?,?,?,?,?,?,?,?)',
+                (
+                    str(datetime.now()),
+                    req.phone,
+                    req.message,
+                    full_colab_payload,
+                    clean_response,
+                    extracted_location,
+                    ','.join(dispatched_services) if dispatched_services else '',
+                    1 if end_call_flag else 0
+                )
+            )
+            log_conn.commit()
+            log_conn.close()
+            print(f" 📝 [PROXY LOG] Saved raw+parsed for {req.phone}")
+        except Exception as log_err:
+            print(f" ⚠️ [PROXY LOG] Failed to save: {log_err}")
+        # ========== END DEBUG LOG ==========
+        
+        # SAFETY NET: Strip any leaked action keywords the Colab regex might have missed
+        import re
+        clean_response = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', clean_response, flags=re.IGNORECASE | re.DOTALL).strip()
+        clean_response = re.sub(r'UPDATE_MAP:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
+        clean_response = re.sub(r'DISPATCH:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
+        clean_response = re.sub(r'END_CALL\b', '', clean_response, flags=re.IGNORECASE).strip()
+        clean_response = re.sub(r'\s{2,}', ' ', clean_response).strip()
         
         # Update Metadata
         current_sim["emotion"] = req.emotion
         
-        # B. Parse Map Actions (<ACTION>UPDATE_MAP: ...</ACTION>)
-        # Regex to find: <ACTION>UPDATE_MAP: 123 Main St</ACTION>
-        import re
-        map_pattern = r"<ACTION>UPDATE_MAP:\s*(.*?)</ACTION>"
-        match = re.search(map_pattern, full_response)
-        
+        # B. Handle Map Actions
         trigger_map = False
         address_to_map = None
-        clean_response = full_response
         
-        if match:
+        if extracted_location:
             trigger_map = True
-            address_to_map = match.group(1).strip()
-            # Remove the tag from the spoken text
-            clean_response = re.sub(map_pattern, "", full_response).strip()
-            
-            # Update Simulation Location
+            address_to_map = extracted_location
             current_sim["location"] = address_to_map
             print(f" 📍 [Proxy] Map Action Detected: {address_to_map}")
             
-        # C. Parse End Call Action (NEW)
-        end_call = False
-        if "<ACTION>END_CALL</ACTION>" in clean_response:
-            clean_response = clean_response.replace("<ACTION>END_CALL</ACTION>", "").strip()
-            end_call = True
-            print(" 🔴 [Proxy] End Call Signal Detected")
+        # C. Handle Dispatch Actions
+        if dispatched_services:
+            current_sim["dispatched_services"] = current_sim.get("dispatched_services", []) + dispatched_services
+            current_sim["dispatched"] = True
+            print(f" 🚨 [Proxy] Dispatch Action Detected: {dispatched_services}")
             
-        # Append CLEAN AI Message to Transcript (Now that tags are removed)
+        # Append CLEAN AI Message to Transcript
         current_sim["transcript"].append({"role": "assistant", "content": clean_response, "timestamp": str(datetime.now())})
             
-        if end_call:
+        if end_call_flag:
             # SAVE TO DATABASE
+            # Determine severity based on whether dispatch was sent
+            was_dispatched = current_sim.get("dispatched", False)
+            call_severity = "RESOLVED" if was_dispatched else "UNRESOLVED"
+            
             try:
                 call_id = db.save_call(
                     transcript_list=current_sim["transcript"],
@@ -675,9 +722,11 @@ async def test_chat_proxy(req: TestChatRequest):
                     location=current_sim["location"],
                     phone=req.phone,
                     city_state=current_sim.get("city_state", "Unknown"),
-                    dispatched_services=",".join(current_sim.get("dispatched_services", []))
+                    severity=call_severity,
+                    dispatched_services=",".join(set(current_sim.get("dispatched_services", []))),
+                    call_id=current_sim.get("id")
                 )
-                print(f" 💾 [Proxy] Call Saved to DB: {call_id}")
+                print(f" 💾 [Proxy] Call Saved to DB: {call_id} | Severity: {call_severity} | Dispatched: {','.join(current_sim.get('dispatched_services', []))}")
                 
                 # Clear from Active Simulations
                 # Clear from Active Simulations
@@ -729,15 +778,16 @@ async def test_chat_proxy(req: TestChatRequest):
             "emotion": req.emotion,
             "location": address_to_map if trigger_map else None,
             "city_state": current_sim.get("city_state", "Unknown"),
-            "end_call": end_call,
-            "phone": req.phone
+            "end_call": end_call_flag,
+            "phone": req.phone,
+            "dispatched_services": dispatched_services if dispatched_services else []
         }))
             
         return {
             "spoken_response": clean_response,
             "trigger_map": trigger_map,
             "address_to_map": address_to_map,
-            "end_call": end_call
+            "end_call": end_call_flag
         }
 
     except Exception as e:

@@ -1,12 +1,12 @@
 import { ChangeEvent, useState } from "react";
-import { Call } from "@/app/live/page";
+import { Call } from "@/data/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, Filter, Search, ShieldCheck, Phone } from "lucide-react";
+import { AlertCircle, AlertTriangle, Filter, Search, ShieldCheck, Phone, MapPin, MessageSquare, X, Clock, Shield } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -14,13 +14,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { US_STATES, EMOTIONS, EMERGENCY_TYPES } from "@/data/constants";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { US_STATES } from "@/data/constants";
 
 export interface FilterState {
     stateCode: string;
     city: string;
-    emotion: string;
-    type: string;
+    timeRange: string;
+    status: string;
     severity: string;
 }
 
@@ -47,6 +52,23 @@ const EventPanel = ({
 }: EventPanelProps) => {
     const [search, setSearch] = useState("");
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+    // Helper: relative time
+    const getRelativeTime = (isoDate: string) => {
+        if (!isoDate) return "";
+        const now = new Date();
+        const then = new Date(isoDate);
+        const diffMs = now.getTime() - then.getTime();
+        const diffSec = Math.floor(diffMs / 1000);
+        if (diffSec < 60) return "Just now";
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return `${diffMin} min ago`;
+        const diffHr = Math.floor(diffMin / 60);
+        if (diffHr < 24) return `${diffHr}h ago`;
+        const diffDay = Math.floor(diffHr / 24);
+        if (diffDay === 1) return "Yesterday";
+        return `${diffDay}d ago`;
+    };
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setSearch(e.currentTarget.value);
@@ -75,93 +97,126 @@ const EventPanel = ({
                         onChange={handleChange}
                     />
                 </div>
-                {filters && (
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className={cn(
-                            "h-10 w-10 border-slate-700 bg-slate-800 text-slate-400 hover:text-white transition-all",
-                            isFiltersOpen && "border-blue-500 text-blue-400 bg-blue-500/10"
-                        )}
-                        onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                    >
-                        <Filter size={18} />
-                    </Button>
+                {filters && onFilterChange && (
+                    <Popover open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className={cn(
+                                    "h-10 w-10 border-slate-700 bg-slate-800 text-slate-400 hover:text-white transition-all",
+                                    isFiltersOpen && "border-blue-500 text-blue-400 bg-blue-500/10"
+                                )}
+                            >
+                                <Filter size={18} />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent side="right" align="start" sideOffset={16} avoidCollisions={false} className="z-[60] w-[260px] rounded-xl border border-slate-700 bg-slate-900/95 backdrop-blur-md text-slate-200 shadow-2xl p-0 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="flex items-center justify-between px-4 py-3">
+                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Filters</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-white" onClick={() => setIsFiltersOpen(false)}>
+                                    <X size={14} />
+                                </Button>
+                            </div>
+                            <div className="px-4 pb-4 flex flex-col gap-4">
+                                {/* State */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] uppercase tracking-[0.15em] text-slate-400 flex items-center gap-1.5 font-medium">
+                                        <MapPin size={12} className="text-slate-500" /> State
+                                    </label>
+                                    <Select value={filters.stateCode} onValueChange={(val) => onFilterChange({ ...filters, stateCode: val, city: "ALL" })}>
+                                        <SelectTrigger className="h-9 rounded-lg border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300">
+                                            <SelectValue placeholder="State" />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper" side="bottom" avoidCollisions={false} className="border-slate-700 bg-slate-900 text-slate-200 z-[70] w-[var(--radix-select-trigger-width)]">
+                                            <div className="max-h-[200px] overflow-y-auto">
+                                                {US_STATES.map(s => (
+                                                    <SelectItem key={s.code} value={s.code} className="text-xs font-medium cursor-pointer">{s.name}</SelectItem>
+                                                ))}
+                                            </div>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* City */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] uppercase tracking-[0.15em] text-slate-400 flex items-center gap-1.5 font-medium">
+                                        <MapPin size={12} className="text-slate-500" /> City
+                                    </label>
+                                    <Select value={filters.city} onValueChange={(val) => onFilterChange({ ...filters, city: val })}>
+                                        <SelectTrigger className="h-9 rounded-lg border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300">
+                                            <SelectValue placeholder="City" />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper" side="bottom" avoidCollisions={false} className="border-slate-700 bg-slate-900 text-slate-200 z-[70] w-[var(--radix-select-trigger-width)]">
+                                            <div className="max-h-[200px] overflow-y-auto">
+                                                <SelectItem value="ALL" className="text-xs font-medium cursor-pointer">All Cities</SelectItem>
+                                                {US_STATES.find(s => s.code === filters.stateCode)?.cities.map(c => (
+                                                    <SelectItem key={c} value={c} className="text-xs font-medium cursor-pointer">{c}</SelectItem>
+                                                ))}
+                                            </div>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Time Range - Only show on Archive page */}
+                                {title !== "Emergencies" && (
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] uppercase tracking-[0.15em] text-slate-400 flex items-center gap-1.5 font-medium">
+                                            <Clock size={12} className="text-slate-500" /> Time Range
+                                        </label>
+                                        <Select value={filters.timeRange} onValueChange={(val) => onFilterChange({ ...filters, timeRange: val })}>
+                                            <SelectTrigger className="h-9 rounded-lg border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300">
+                                                <SelectValue placeholder="Time" />
+                                            </SelectTrigger>
+                                            <SelectContent position="popper" side="bottom" avoidCollisions={false} className="border-slate-700 bg-slate-900 text-slate-200 z-[70] w-[var(--radix-select-trigger-width)]">
+                                                <SelectItem value="ALL" className="text-xs font-medium cursor-pointer">All Time</SelectItem>
+                                                <SelectItem value="1d" className="text-xs font-medium cursor-pointer">Last 1 Day</SelectItem>
+                                                <SelectItem value="3d" className="text-xs font-medium cursor-pointer">Last 3 Days</SelectItem>
+                                                <SelectItem value="1w" className="text-xs font-medium cursor-pointer">Last 1 Week</SelectItem>
+                                                <SelectItem value="1m" className="text-xs font-medium cursor-pointer">Last 1 Month</SelectItem>
+                                                <SelectItem value="1y" className="text-xs font-medium cursor-pointer">Last 1 Year</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                {/* Status */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] uppercase tracking-[0.15em] text-slate-400 flex items-center gap-1.5 font-medium">
+                                        <Shield size={12} className="text-slate-500" /> Status
+                                    </label>
+                                    <Select value={filters.status} onValueChange={(val) => onFilterChange({ ...filters, status: val })}>
+                                        <SelectTrigger className="h-9 rounded-lg border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper" side="bottom" avoidCollisions={false} className="border-slate-700 bg-slate-900 text-slate-200 z-[70] w-[var(--radix-select-trigger-width)]">
+                                            <SelectItem value="ALL" className="text-xs font-medium cursor-pointer">All Statuses</SelectItem>
+                                            <SelectItem value="CRITICAL" className="text-xs font-medium cursor-pointer">🔴 Critical</SelectItem>
+                                            <SelectItem value="RESOLVED" className="text-xs font-medium cursor-pointer">🟢 Resolved</SelectItem>
+                                            <SelectItem value="UNRESOLVED" className="text-xs font-medium cursor-pointer">🟡 Unresolved</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="px-4 py-3 flex items-center justify-between pb-4">
+                                <button
+                                    className="text-xs text-slate-400 hover:text-white font-medium"
+                                    onClick={() => onFilterChange({ stateCode: "ALL", city: "ALL", timeRange: "ALL", status: "ALL", severity: "ALL" })}
+                                >
+                                    Reset
+                                </button>
+                                <Button
+                                    size="sm"
+                                    className="h-8 rounded-[8px] bg-blue-600 hover:bg-blue-700 text-white px-5 text-xs font-semibold tracking-wide"
+                                    onClick={() => setIsFiltersOpen(false)}
+                                >
+                                    Apply
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 )}
             </div>
-
-            {/* Collapsible Filters */}
-            {filters && onFilterChange && isFiltersOpen && (
-                <div className="mb-6 px-2 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="grid grid-cols-2 gap-2">
-                        {/* State Select */}
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">State</label>
-                            <Select value={filters.stateCode} onValueChange={(val) => onFilterChange({ ...filters, stateCode: val, city: "ALL" })}>
-                                <SelectTrigger className="h-8 border-slate-700 bg-slate-800 text-[10px] uppercase font-bold text-slate-300">
-                                    <SelectValue placeholder="State" />
-                                </SelectTrigger>
-                                <SelectContent className="border-slate-700 bg-slate-900 text-slate-200">
-                                    {US_STATES.map(s => (
-                                        <SelectItem key={s.code} value={s.code} className="text-[10px] uppercase font-bold">{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* City Select */}
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">City</label>
-                            <Select value={filters.city} onValueChange={(val) => onFilterChange({ ...filters, city: val })}>
-                                <SelectTrigger className="h-8 border-slate-700 bg-slate-800 text-[10px] uppercase font-bold text-slate-300">
-                                    <SelectValue placeholder="City" />
-                                </SelectTrigger>
-                                <SelectContent className="border-slate-700 bg-slate-900 text-slate-200">
-                                    <SelectItem value="ALL" className="text-[10px] uppercase font-bold">All Cities</SelectItem>
-                                    {US_STATES.find(s => s.code === filters.stateCode)?.cities.map(c => (
-                                        <SelectItem key={c} value={c} className="text-[10px] uppercase font-bold">{c}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                        {/* Emotion Select */}
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Emotion</label>
-                            <Select value={filters.emotion} onValueChange={(val) => onFilterChange({ ...filters, emotion: val })}>
-                                <SelectTrigger className="h-8 border-slate-700 bg-slate-800 text-[10px] uppercase font-bold text-slate-300">
-                                    <SelectValue placeholder="Emotion" />
-                                </SelectTrigger>
-                                <SelectContent className="border-slate-700 bg-slate-900 text-slate-200">
-                                    <SelectItem value="ALL" className="text-[10px] uppercase font-bold">All Emotions</SelectItem>
-                                    {EMOTIONS.map(e => (
-                                        <SelectItem key={e} value={e} className="text-[10px] uppercase font-bold">{e}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Type Select */}
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Type</label>
-                            <Select value={filters.type} onValueChange={(val) => onFilterChange({ ...filters, type: val })}>
-                                <SelectTrigger className="h-8 border-slate-700 bg-slate-800 text-[10px] uppercase font-bold text-slate-300">
-                                    <SelectValue placeholder="Type" />
-                                </SelectTrigger>
-                                <SelectContent className="border-slate-700 bg-slate-900 text-slate-200">
-                                    <SelectItem value="ALL" className="text-[10px] uppercase font-bold">All Types</SelectItem>
-                                    {EMERGENCY_TYPES.map(t => (
-                                        <SelectItem key={t} value={t} className="text-[10px] uppercase font-bold">{t}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <Separator className="bg-slate-800 mt-2" />
-                </div>
-            )}
 
             {showCounters && (
                 <div className="mb-6 flex justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-4 mx-2">
@@ -222,70 +277,103 @@ const EventPanel = ({
                 </div>
             )}
 
-            <div className="h-[calc(100vh-320px)] space-y-3 overflow-y-auto px-1 scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-blue-800/80 hover:scrollbar-thumb-blue-800">
+            <div className="h-[calc(100vh-200px)] space-y-1 overflow-y-auto px-1 scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-blue-800/80 hover:scrollbar-thumb-blue-800">
                 {data &&
                     Object.entries(data)
                         .filter(([_, emergency]) =>
-                            emergency.title?.includes(search),
+                            emergency.title?.toLowerCase().includes(search.toLowerCase()) ||
+                            emergency.phone?.includes(search) ||
+                            emergency.location_name?.toLowerCase().includes(search.toLowerCase()),
                         )
                         .sort(([_, a], [__, b]) =>
                             new Date(a.time) < new Date(b.time) ? 1 : -1,
                         )
-                        .map(([_, emergency]) => (
-                            <Card
-                                key={emergency.id}
-                                className={cn(
-                                    "relative m-1 flex cursor-pointer items-center border-l-4 p-4 transition-all hover:bg-slate-800",
-                                    "bg-slate-900 border-y border-r border-slate-800",
-                                    selectedId === emergency.id
-                                        ? "border-l-blue-500 bg-slate-800 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]"
-                                        : emergency.severity === "CRITICAL" ? "border-l-red-500" : "border-l-slate-600",
-                                )}
-                                onClick={() => handleSelect(emergency.id)}
-                            >
-                                {emergency.severity === "CRITICAL" && (
-                                    <AlertCircle className="mr-4 h-6 w-6 text-red-500" />
-                                )}
-                                {emergency.severity === "MODERATE" && (
-                                    <AlertTriangle className="mr-4 h-6 w-6 text-orange-500" />
-                                )}
-                                {emergency.severity === "UNRESOLVED" && (
-                                    <AlertTriangle className="mr-4 h-6 w-6 text-orange-500" />
-                                )}
-                                <CardContent className="flex-grow p-0 space-y-1.5 mt-1">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex flex-col space-y-0.5">
-                                            <div className={cn("text-sm font-bold uppercase tracking-wide leading-tight", selectedId === emergency.id ? "text-blue-400" : "text-slate-200")}>
-                                                {emergency.title}
-                                            </div>
-                                            {emergency.phone && emergency.phone !== "Unknown" && (
-                                                <div className="flex items-center space-x-1.5 text-[10px] text-slate-400 font-mono mt-0.5">
-                                                    <Phone size={10} className="text-blue-500" />
-                                                    <span className="opacity-90">{emergency.phone}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="text-[10px] text-slate-500 font-mono shrink-0 ml-2" suppressHydrationWarning>
-                                            {new Date(emergency.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                                {emergency.severity ? (
-                                    <Badge
-                                        className={cn(
-                                            "ml-2 min-w-fit rounded-sm px-2 py-0.5 text-[10px] uppercase tracking-wider",
-                                            emergency.severity === "CRITICAL"
-                                                ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                        .map(([_, emergency]) => {
+                            const lastMsg = emergency.transcript?.length > 0
+                                ? emergency.transcript[emergency.transcript.length - 1]
+                                : null;
+                            const msgCount = emergency.transcript?.length || 0;
+                            const previewPrefix = lastMsg?.role === "assistant" ? "D: " : lastMsg?.role === "user" ? "C: " : "";
+                            const previewText = lastMsg ? `${previewPrefix}${lastMsg.content}` : "No transcript available";
+                            const cityState = (emergency as any).city_state || emergency.location_name || "Unknown";
+
+                            return (
+                                <div
+                                    key={emergency.id}
+                                    className={cn(
+                                        "relative cursor-pointer border-l-4 px-4 py-3 transition-all hover:bg-slate-800/60",
+                                        "border-b border-slate-800/60",
+                                        selectedId === emergency.id
+                                            ? "border-l-blue-500 bg-slate-800/50"
+                                            : emergency.severity === "CRITICAL"
+                                                ? "border-l-red-500"
                                                 : emergency.severity === "UNRESOLVED"
-                                                    ? "bg-orange-500/10 text-orange-500 border border-orange-500/20"
-                                                    : "bg-green-500/10 text-green-500 border border-green-500/20"
+                                                    ? "border-l-orange-500"
+                                                    : "border-l-emerald-500",
+                                    )}
+                                    onClick={() => handleSelect(emergency.id)}
+                                >
+                                    {/* Row 1: Title + Relative Time */}
+                                    <div className="flex items-start justify-between mb-1">
+                                        <h4 className={cn(
+                                            "text-sm font-bold leading-tight",
+                                            selectedId === emergency.id ? "text-blue-400" : "text-slate-200"
+                                        )}>
+                                            {emergency.title || "Emergency Call"}
+                                        </h4>
+                                        <span className="text-[10px] text-slate-500 font-medium shrink-0 ml-2 mt-0.5" suppressHydrationWarning>
+                                            {getRelativeTime(emergency.time)}
+                                        </span>
+                                    </div>
+
+                                    {/* Row 2: Agent + Location */}
+                                    <div className="flex items-center gap-3 text-[11px] text-slate-400 mb-1.5">
+                                        <span>Dispatcher: AI</span>
+                                        {cityState !== "Unknown" && (
+                                            <span className="flex items-center gap-0.5">
+                                                <MapPin size={10} className="text-slate-500" />
+                                                {cityState}
+                                            </span>
                                         )}
-                                    >
-                                        {emergency.severity}
-                                    </Badge>
-                                ) : null}
-                            </Card>
-                        ))}
+                                        {emergency.phone && emergency.phone !== "Unknown" && (
+                                            <span className="flex items-center gap-0.5 font-mono">
+                                                <Phone size={9} className="text-blue-500" />
+                                                {emergency.phone}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Row 3: Last Message Preview + Count */}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="text-xs text-slate-500 truncate flex-1 leading-snug">
+                                            {previewText}
+                                        </p>
+                                        {msgCount > 0 && (
+                                            <span className="flex items-center gap-0.5 shrink-0 text-[10px] font-bold text-slate-400 bg-slate-800 rounded-full px-1.5 py-0.5">
+                                                <MessageSquare size={9} />
+                                                {msgCount}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Row 4: Severity Tag (only for non-resolved) */}
+                                    {emergency.severity && emergency.severity !== "RESOLVED" && (
+                                        <div className="mt-1.5">
+                                            <span className={cn(
+                                                "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                                                emergency.severity === "CRITICAL"
+                                                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                                    : emergency.severity === "UNRESOLVED"
+                                                        ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                                                        : "bg-slate-700/50 text-slate-400"
+                                            )}>
+                                                {emergency.severity}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
             </div>
         </div>
     );

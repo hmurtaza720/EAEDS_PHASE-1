@@ -192,7 +192,7 @@ export const CITY_COORDS: Record<string, { lat: number, lng: number }> = {
     "Nashua": { lat: 42.7654, lng: -71.4676 },
     "Concord": { lat: 43.2081, lng: -71.5376 },
     // New Jersey
-    "Newark": { lat: 40.7357, lng: -74.1724 },
+    // "Newark": { lat: 40.7357, lng: -74.1724 },
     "Jersey City": { lat: 40.7282, lng: -74.0776 },
     "Paterson": { lat: 40.9168, lng: -74.1718 },
     // New Mexico
@@ -268,7 +268,7 @@ export const CITY_COORDS: Record<string, { lat: number, lng: number }> = {
     "Spokane": { lat: 47.6588, lng: -117.4260 },
     "Tacoma": { lat: 47.2529, lng: -122.4443 },
     // West Virginia
-    "Charleston": { lat: 38.3498, lng: -81.6326 }, // WV Charleston
+    // "Charleston": { lat: 38.3498, lng: -81.6326 }, // WV Charleston
     "Huntington": { lat: 38.4192, lng: -82.4452 },
     "Morgantown": { lat: 39.6295, lng: -79.9559 },
     // Wisconsin

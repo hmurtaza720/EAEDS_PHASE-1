@@ -108,14 +108,14 @@ const TrafficPage = () => {
                                                 "flex h-8 w-8 items-center justify-center rounded-lg font-bold text-xs transition-colors",
                                                 selectedCallId === call.id ? "bg-blue-500 text-white" : "bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-slate-200"
                                             )}>
-                                                {call.name.charAt(0)}
+                                                {call.name ? call.name.charAt(0) : "?"}
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className={cn(
                                                     "font-bold uppercase tracking-wide text-xs",
                                                     selectedCallId === call.id ? "text-blue-400" : "text-slate-300 group-hover:text-white"
                                                 )}>
-                                                    {call.name}
+                                                    {call.name || "Unknown Shooter"}
                                                 </span>
                                                 <span className="text-[10px] text-slate-500 font-mono mt-0.5">
                                                     {call.phone || "Unknown Number"}

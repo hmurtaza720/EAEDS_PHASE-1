@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import EventPanel from "@/components/live/EventPanel";
 import Header from "@/components/live/Header";
 import { FilterState } from "@/components/live/EventPanel";
+import { Call, CallProps } from "@/data/types";
 import { US_STATES } from "@/data/constants";
 import TranscriptPanel from "@/components/live/TranscriptPanel";
 import { ChevronRight, ChevronLeft, Info, BrainCircuit, Siren, FireExtinguisher, Ambulance, Phone } from "lucide-react";
@@ -30,44 +31,11 @@ interface ServerMessage {
     location?: [number, number];
 }
 
-export type Call = {
-    emotions?: {
-        emotion: string;
-        intensity: number;
-    }[];
-    id: string;
-    location_name: string;
-    location_coords?: {
-        lat: number;
-        lng: number;
-    };
-    street_view?: string; // base 64
-    name: string;
-    phone: string;
-    recommendation: string;
-    severity?: "CRITICAL" | "MODERATE" | "RESOLVED" | "UNRESOLVED";
-    summary: string;
-    time: string; // ISO Date String
-    title?: string;
-    transcript: {
-        role: "assistant" | "user" | "agent";
-        content: string;
-    }[];
-    type: string;
-};
-
-export interface CallProps {
-    call?: Call;
-    selectedId: string | undefined;
-}
-
 const getWsUrl = () => {
     if (typeof window === "undefined") return "ws://127.0.0.1:8000/ws/call";
     const host = window.location.hostname;
     return `ws://${host}:8000/ws/call`;
 };
-
-let wss: WebSocket | null = null;
 
 const emptyCall: Call = {
     emotions: [],
@@ -95,16 +63,20 @@ const Page = () => {
     const [filters, setFilters] = useState<FilterState>({
         stateCode: "ALL",
         city: "ALL",
-        emotion: "ALL",
-        type: "ALL"
+        timeRange: "ALL",
+        status: "ALL",
+        severity: "ALL"
     });
+    const [searchedLocation, setSearchedLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
     const [isOverlayOpen, setIsOverlayOpen] = useState(true);
     const { toast } = useToast();
+    const wsRef = React.useRef<WebSocket | null>(null);
 
     const [center, setCenter] = useState<{ lat: number; lng: number }>({
         lat: 37.867989,
         lng: -122.271507,
     });
+    const [zoom, setZoom] = useState(4);
 
     const filteredData = Object.entries(data).reduce((acc, [key, call]) => {
         // 1. Text Search (Local Search in EventPanel) - handled by EventPanel filter prop passing if needed,
@@ -132,17 +104,24 @@ const Page = () => {
             if (!loc.includes(filters.city.toLowerCase())) match = false;
         }
 
-        // Emotion Filter
-        if (match && filters.emotion !== "ALL") {
-            const hasEmotion = call.emotions?.some(e => e.emotion === filters.emotion);
-            if (!hasEmotion) match = false;
+        // Time Range Filter
+        if (match && filters.timeRange !== "ALL") {
+            const callTime = new Date(call.time).getTime();
+            const now = Date.now();
+            let cutoff = now;
+            switch (filters.timeRange) {
+                case "1d": cutoff = now - 24 * 60 * 60 * 1000; break;
+                case "3d": cutoff = now - 3 * 24 * 60 * 60 * 1000; break;
+                case "1w": cutoff = now - 7 * 24 * 60 * 60 * 1000; break;
+                case "1m": cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
+                case "1y": cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
+            }
+            if (callTime < cutoff) match = false;
         }
 
-        // Type Filter
-        if (match && filters.type !== "ALL") {
-            const typeMatch = (call.type?.toLowerCase() === filters.type.toLowerCase()) ||
-                (call.title?.toLowerCase().includes(filters.type.toLowerCase()));
-            if (!typeMatch) match = false;
+        // Status Filter
+        if (match && filters.status !== "ALL") {
+            if (call.severity !== filters.status) match = false;
         }
 
         // Archive constraint: Only show ended calls (RESOLVED or UNRESOLVED)
@@ -191,15 +170,53 @@ const Page = () => {
     };
 
     const handleTransfer = (id: string) => {
-        if (wss) {
-            wss.send(JSON.stringify({ event: "transfer", id: id }));
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ event: "transfer", id: id }));
         }
     };
 
     useEffect(() => {
-        if (!selectedId || !data[selectedId]?.location_coords) return;
-        setCenter(data[selectedId].location_coords as { lat: number; lng: number });
-    }, [selectedId, data]);
+        if (!selectedId || !data[selectedId]) return;
+        const call = data[selectedId];
+
+        // If coords already exist, just center the map
+        if (call.location_coords && call.location_coords.lat !== 0 && call.location_coords.lng !== 0) {
+            setCenter(call.location_coords);
+            setZoom(15);
+            return;
+        }
+
+        // If no coords but we have a location name, geocode it
+        if (call.location_name && call.location_name !== "Unknown") {
+            const geocode = async () => {
+                try {
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(call.location_name || "")}&format=json&limit=1`
+                    );
+                    const geoData = await res.json();
+                    if (geoData && geoData.length > 0) {
+                        const coords = {
+                            lat: parseFloat(geoData[0].lat),
+                            lng: parseFloat(geoData[0].lon)
+                        };
+                        // Update the call data with coords
+                        setData(prev => ({
+                            ...prev,
+                            [selectedId]: {
+                                ...prev[selectedId],
+                                location_coords: coords
+                            }
+                        }));
+                        setCenter(coords);
+                        setZoom(15);
+                    }
+                } catch (err) {
+                    console.error("Failed to geocode archive location:", err);
+                }
+            };
+            geocode();
+        }
+    }, [selectedId]);
 
     useEffect(() => {
         if (selectedId && data[selectedId]) {
@@ -218,17 +235,21 @@ const Page = () => {
     }, [selectedId, data, city]);
 
     useEffect(() => {
-        if (!wss) {
-            wss = new WebSocket(getWsUrl());
-        }
-        wss.onopen = () => {
-            setConnected(true);
-            wss!.send(JSON.stringify({ event: "get_db" }));
-            wss!.onmessage = (event: MessageEvent) => {
+        const connect = () => {
+            const ws = new WebSocket(getWsUrl());
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                setConnected(true);
+                ws.send(JSON.stringify({ event: "get_db" }));
+            };
+
+            ws.onmessage = (event: MessageEvent) => {
                 const message = JSON.parse(event.data) as ServerMessage;
                 if (message.event === "ai_response") {
                     setData(prevData => {
-                        const liveCallId = "live_session_1";
+                        const phone = (message as any).phone;
+                        const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
                         const currentCall = prevData[liveCallId] || {
                             ...emptyCall,
                             id: liveCallId,
@@ -271,22 +292,32 @@ const Page = () => {
                             }
                         };
                     });
-                    if (selectedId !== "live_session_1") setSelectedId("live_session_1");
+                    const phone = (message as any).phone;
+                    const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                    if (selectedId !== liveCallId) setSelectedId(liveCallId);
                 } else if (message.data) {
                     setData(prevData => ({ ...prevData, ...message.data }));
                 }
             };
-            if (wss) {
-                wss.onclose = () => setConnected(false);
-                wss.onerror = (error) => console.error("WebSocket Error:", error);
+
+            ws.onclose = () => setConnected(false);
+            ws.onerror = (error) => console.error("WebSocket Error:", error);
+        };
+
+        connect();
+
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
             }
         };
     }, []);
 
     return (
         <div className="flex h-full flex-col space-y-1 selection:bg-blue-500/30">
-            <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                <Header connected={connected} city={city} setCity={handleHeaderCityChange} />
+            <div className="rounded-xl border border-slate-800 bg-slate-900 shadow-xl relative z-[2000] drop-shadow-2xl">
+                <Header connected={connected} city={city} setCity={handleHeaderCityChange} filters={filters} onLocationSearch={setSearchedLocation} />
             </div>
 
             <div className="flex flex-1 space-x-1 overflow-hidden">
@@ -304,36 +335,33 @@ const Page = () => {
                 </div>
 
                 {/* Column 2: Map Workspace */}
-                <div className="relative flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20 shadow-2xl">
+                <div className="relative flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20 shadow-2xl z-[10]">
                     <Map
                         center={center}
+                        zoom={zoom}
+                        searchedLocation={searchedLocation}
                         pins={
-                            Object.entries(filteredData)
-                                .filter(
-                                    ([_, call]) =>
-                                        call.location_coords && call.location_name,
-                                )
-                                .map(([_, call]) => {
-                                    return {
-                                        coordinates: [
-                                            call.location_coords?.lat as number,
-                                            call.location_coords?.lng as number,
-                                        ],
-                                        popupHtml: `<b>${call.title}</b><br>Location: ${call.location_name}`,
-                                    };
-                                })
+                            selectedId && data[selectedId]?.location_coords && data[selectedId]?.location_name
+                                ? [{
+                                    coordinates: [
+                                        data[selectedId].location_coords!.lat,
+                                        data[selectedId].location_coords!.lng,
+                                    ],
+                                    popupHtml: `<b>${data[selectedId].title || "Emergency Call"}</b><br>Location: ${data[selectedId].location_name}`,
+                                }]
+                                : []
                         }
                     />
 
                     {/* Collapsible Overlay */}
                     {selectedId && data[selectedId] && (
                         <div className={cn(
-                            "absolute right-0 top-4 z-[1000] flex items-center transition-all duration-300 ease-in-out",
-                            isOverlayOpen ? "translate-x-0" : "translate-x-[calc(100%-44px)]"
+                            "absolute right-[-8px] top-4 z-[1000] flex items-center transition-all duration-300 ease-in-out",
+                            isOverlayOpen ? "translate-x-0" : "translate-x-[calc(100%+20px)]"
                         )}>
                             <div className="flex flex-row items-center space-x-1">
                                 {isOverlayOpen && (
-                                    <div className="flex w-80 flex-col space-y-3 rounded-2xl border border-slate-800 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-right-4">
+                                    <div className="flex w-80 flex-col space-y-3 rounded-2xl border border-slate-700/50 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-right-4">
                                         {/* Incident Header */}
                                         <div className="space-y-1">
                                             <div className="flex items-start justify-between">
@@ -344,6 +372,11 @@ const Page = () => {
                                                         <div className="flex items-center space-x-1 text-[10px] text-slate-400">
                                                             <Phone size={10} className="text-blue-400" />
                                                             <span className="font-mono">{data[selectedId].phone}</span>
+                                                        </div>
+                                                    )}
+                                                    {data[selectedId].id && (
+                                                        <div className="flex items-center space-x-1 text-[10px] text-slate-500/80 pt-0.5">
+                                                            <span className="font-mono bg-slate-800/50 px-1.5 py-0.5 rounded text-[9px] border border-slate-700/50">{data[selectedId].id}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -444,12 +477,7 @@ const Page = () => {
                                         </div>
                                     </div>
                                 )}
-                                <button
-                                    onClick={() => setIsOverlayOpen(!isOverlayOpen)}
-                                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-900/90 border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white shadow-lg transition-all"
-                                >
-                                    {isOverlayOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-                                </button>
+
                             </div>
                         </div>
                     )}
@@ -463,6 +491,8 @@ const Page = () => {
                         handleTransfer={handleTransfer}
                         handleResolve={handleResolve}
                         mode="archive"
+                        isMapOverlayOpen={isOverlayOpen}
+                        onToggleMapOverlay={() => setIsOverlayOpen(!isOverlayOpen)}
                         relatedCalls={
                             selectedId && data[selectedId]?.phone && data[selectedId].phone !== "Unknown"
                                 ? Object.entries(data)

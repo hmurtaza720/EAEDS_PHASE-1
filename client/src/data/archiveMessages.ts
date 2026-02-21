@@ -1,4 +1,4 @@
-import { Call } from "@/app/archive/page";
+import { Call } from "@/data/types";
 
 export const ARCHIVE_MESSAGES: Record<string, Call> = {
     "archived_1": {

@@ -48,11 +48,36 @@ class DatabaseManager:
         conn.close()
         print(f" [DB] Database initialized at {DB_PATH}")
 
-    def save_call(self, transcript_list: list, emotion: str, location: str, phone: str = "Unknown", city_state: str = "Unknown", severity: str = "RESOLVED", dispatched_services: str = ""):
+    def generate_call_id(phone: str, dt: datetime, city_state: str) -> str:
+        """Generates a standardized Call ID: PHONE-YYYYMMDD-HHMM-CITY"""
+        import re
+        # Extract last 4 digits of phone, fallback to 0000
+        phone_nums = re.sub(r'[^0-9]', '', str(phone)) if phone else ""
+        phone_part = phone_nums[-4:] if len(phone_nums) >= 4 else phone_nums.zfill(4)
+        if not phone_part or phone_part == "0000":
+            phone_part = "0000"
+            
+        date_part = dt.strftime("%Y%m%d")
+        time_part = dt.strftime("%H%M")
+        
+        # Extract city/state snippet
+        if city_state and city_state != "Unknown":
+            parts = city_state.split(',')
+            state_token = parts[-1].strip() if len(parts) > 1 else parts[0].strip()
+            loc_part = re.sub(r'[^A-Z]', '', state_token.upper())[:4]
+            if not loc_part: loc_part = "UNK"
+        else:
+            loc_part = "UNK"
+            
+        return f"{phone_part}-{date_part}-{time_part}-{loc_part}"
+
+    def save_call(self, transcript_list: list, emotion: str, location: str, phone: str = "Unknown", city_state: str = "Unknown", severity: str = "RESOLVED", dispatched_services: str = "", call_id: str = None):
         """Saves a completed call to the database."""
-        call_id = str(uuid.uuid4())
         ended_at = datetime.now()
         started_at = ended_at # Simplified for now
+        
+        if not call_id:
+            call_id = DatabaseManager.generate_call_id(phone, started_at, city_state)
         
         transcript_json = json.dumps(transcript_list)
         

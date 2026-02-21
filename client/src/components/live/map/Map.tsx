@@ -25,13 +25,15 @@ interface MapProps {
         lat: number;
     };
     pins: MapPin[];
-    zoom: number;
+    zoom?: number;
     selectedCoordinates?: [number, number];
+    searchedLocation?: { lat: number; lng: number; name: string } | null;
 }
 
-const Map: React.FC<MapProps> = ({ center, pins, zoom, selectedCoordinates }) => {
+const Map: React.FC<MapProps> = ({ center, pins, zoom = 4, selectedCoordinates, searchedLocation }) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<L.Map | null>(null);
+    const searchMarkerRef = useRef<L.Marker | null>(null);
     const [mapReady, setMapReady] = useState(false);
     const [pois, setPois] = useState<any[]>([]);
 
@@ -201,9 +203,41 @@ const Map: React.FC<MapProps> = ({ center, pins, zoom, selectedCoordinates }) =>
 
     }, [selectedCoordinates]);
 
+    // Handle Searched Location flyTo & Marker
+    useEffect(() => {
+        if (!mapReady || !mapInstance.current || !searchedLocation) return;
+
+        const { lat, lng, name } = searchedLocation;
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+            mapInstance.current.flyTo([lat, lng], 16, { animate: true, duration: 1.5 });
+
+            // Clear previous search marker if exists
+            if (searchMarkerRef.current) {
+                mapInstance.current.removeLayer(searchMarkerRef.current);
+            }
+
+            // Add temporary marker for the searched location
+            const searchIcon = new L.Icon({
+                iconUrl: PinBlack.src,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32],
+            });
+
+            const marker = L.marker([lat, lng], { icon: searchIcon })
+                .addTo(mapInstance.current)
+                .bindPopup(`<b>Searched Location</b><br/>${name}`)
+                .openPopup();
+
+            searchMarkerRef.current = marker;
+        }
+    }, [mapReady, searchedLocation]);
+
     return (
         <div className={styles.mapWrap}>
             <div ref={mapContainer} className={styles.map} />
+
             {selectedCoordinates && pois.length > 0 && (
                 <div className="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-700 p-2 rounded-lg text-[10px] text-slate-300 z-[1000] shadow-xl backdrop-blur-sm">
                     <p className="font-bold mb-1 border-b border-slate-700 pb-1">Nearby Support</p>
