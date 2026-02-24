@@ -192,7 +192,9 @@ export default function Dashboard() {
                         <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/40 p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold text-white">Recent Activity</h3>
-                                <button className="text-xs text-blue-400 hover:text-blue-300">View All Log</button>
+                                <Link href="/archive" className="text-xs text-blue-400 hover:text-blue-300">
+                                    View All Log
+                                </Link>
                             </div>
                             <div className="space-y-4">
                                 {recentCalls.length === 0 ? (
