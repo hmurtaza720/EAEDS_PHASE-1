@@ -327,8 +327,6 @@ async def websocket_endpoint(websocket: WebSocket):
                              "full_transcript": sim["transcript"],
                              "is_recovery": True
                          }))
-                         break
-                         
                 continue
 
             # Handling updates from AI worker
