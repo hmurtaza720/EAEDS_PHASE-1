@@ -521,7 +521,14 @@ const Page = () => {
                     // Let's rely on "live_session_1" BUT ensure it's overwritten by incoming_call correctly.
 
                     const phone = (message as any).phone;
-                    const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                    // Force the ID to use the phone number so we don't collapse all calls into live_session_1
+                    let liveCallId = "live_session_1";
+                    if (phone && phone !== "Unknown") {
+                        liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
+                    } else if ((message as any).id) {
+                        liveCallId = (message as any).id;
+                    }
+
                     const currentCall = prevData[liveCallId] || {
                         ...emptyCall,
                         id: liveCallId,
@@ -647,7 +654,12 @@ const Page = () => {
 
                 // Recalculate ID for selection logic since we are outside setData scope
                 const phone = (message as any).phone;
-                const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                let liveCallId = "live_session_1";
+                if (phone && phone !== "Unknown") {
+                    liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
+                } else if ((message as any).id) {
+                    liveCallId = (message as any).id;
+                }
 
                 if (!selectedId) {
                     setSelectedId(liveCallId);
@@ -675,7 +687,12 @@ const Page = () => {
                 // FORCE RESET: When a new call comes in, we must wipe the previous state.
                 setData(prevData => {
                     const phone = (message as any).phone;
-                    const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                    let liveCallId = "live_session_1";
+                    if (phone && phone !== "Unknown") {
+                        liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
+                    } else if ((message as any).id) {
+                        liveCallId = (message as any).id;
+                    }
 
                     // Create a FRESH object, do not merge with old transcript
                     const newCallData: Call = {
@@ -708,7 +725,12 @@ const Page = () => {
 
                 // Calculate ID again to set selection (needs to match the one inside setData)
                 const phone = (message as any).phone;
-                const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                let liveCallId = "live_session_1";
+                if (phone && phone !== "Unknown") {
+                    liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
+                } else if ((message as any).id) {
+                    liveCallId = (message as any).id;
+                }
                 setSelectedId(liveCallId);
 
                 // Only show toast if NOT a recovery message, with deduplication
