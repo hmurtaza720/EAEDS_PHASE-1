@@ -201,7 +201,7 @@ export default function Dashboard() {
                                 {recentCalls.length === 0 ? (
                                     <p className="text-sm text-slate-500 italic">No recent activity detected.</p>
                                 ) : recentCalls.map((call) => (
-                                    <div key={call.id} className="flex items-center justify-between p-4 rounded-lg bg-slate-950/50 border border-slate-800/50 transition-all hover:bg-slate-900">
+                                    <Link key={call.id} href={`/archive?id=${call.id}`} className="flex items-center justify-between p-4 rounded-lg bg-slate-950/50 border border-slate-800/50 transition-all hover:bg-slate-900 cursor-pointer">
                                         <div className="flex items-center space-x-4">
                                             <div className={cn("h-2 w-2 rounded-full", call.severity === "CRITICAL" ? "bg-red-500 animate-pulse" : (call.severity === "RESOLVED" ? "bg-green-500" : "bg-slate-500"))} />
                                             <div>
@@ -215,7 +215,7 @@ export default function Dashboard() {
                                         )}>
                                             {call.severity || "MODERATE"}
                                         </span>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </div>

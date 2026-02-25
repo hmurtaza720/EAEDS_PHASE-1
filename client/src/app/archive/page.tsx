@@ -78,6 +78,16 @@ const Page = () => {
     });
     const [zoom, setZoom] = useState(4);
 
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const idParam = params.get("id");
+            if (idParam) {
+                setSelectedId(idParam);
+            }
+        }
+    }, []);
+
     const filteredData = Object.entries(data).reduce((acc, [key, call]) => {
         // 1. Text Search (Local Search in EventPanel) - handled by EventPanel filter prop passing if needed,
         // but EventPanel handles its own internal search state for the list.
