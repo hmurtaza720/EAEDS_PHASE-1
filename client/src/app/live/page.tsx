@@ -761,28 +761,11 @@ const Page = () => {
                 });
             } else if (message.data) {
                 // DB Response: Contains Historical/Resolved calls.
-                // We must REMOVE live_session entries whose phone matches a DB record
-                // (meaning the call was archived), to prevent duplicate cards.
                 setData(prevData => {
-                    // Collect phones from DB data to detect archived calls
-                    const archivedPhones = new Set<string>();
-                    Object.values(message.data!).forEach(call => {
-                        if (call.phone && call.phone !== "Unknown") {
-                            archivedPhones.add(call.phone.replace(/[^0-9]/g, ""));
-                        }
-                    });
-
-                    // Keep live sessions ONLY if their phone is NOT in the archived set
-                    const activeSessions = Object.entries(prevData)
-                        .filter(([key]) => {
-                            if (!key.startsWith("live_session_")) return false;
-                            const sessionDigits = key.replace("live_session_", "");
-                            return !archivedPhones.has(sessionDigits);
-                        })
-                        .reduce((acc, [key, val]) => ({ ...acc, [key]: val }), {} as Record<string, Call>);
-
+                    // We only want to pull in the history to `data`
+                    // Live sessions are handled by incoming_call, ai_response, and end_call events.
                     return {
-                        ...activeSessions,
+                        ...prevData,
                         ...message.data
                     };
                 });
