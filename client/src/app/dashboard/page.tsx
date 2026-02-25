@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Sidebar from "@/components/live/Sidebar";
 import { Activity, Phone, User, Bot, Siren, Archive as ArchiveIcon } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Call } from "@/data/types";
 
