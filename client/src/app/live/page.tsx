@@ -193,8 +193,8 @@ const Page = () => {
 
     // Filter data based on selected city
     const filteredData = Object.entries(data).reduce((acc, [key, call]) => {
-        // Only auto-pass live sessions that are still ACTIVE (Connected)
-        if (key.startsWith("live_session_") && call.status === "Connected" && call.severity !== "RESOLVED" && call.severity !== "UNRESOLVED") {
+        // Auto-pass active live calls (Connected, not ended) regardless of filters
+        if (call.status === "Connected" && call.severity !== "RESOLVED" && call.severity !== "UNRESOLVED") {
             acc[key] = call;
             return acc;
         }
@@ -320,17 +320,14 @@ const Page = () => {
         }
 
         // Send dispatch event — marks the call as dispatched but does NOT end it
-        if (id.startsWith("live_session_")) {
-            const phoneToSend = call?.phone || id.replace("live_session_", "");
-
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({
-                    event: "dispatch",
-                    phone: phoneToSend,
-                    dispatch_type: dispatchType
-                }));
-                console.log(`Sent dispatch event (${dispatchType}) for:`, phoneToSend);
-            }
+        const phoneToSend = call?.phone || "";
+        if (phoneToSend && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                event: "dispatch",
+                phone: phoneToSend,
+                dispatch_type: dispatchType
+            }));
+            console.log(`Sent dispatch event (${dispatchType}) for:`, phoneToSend);
         }
 
         // Update local state: track which services have been dispatched
@@ -511,28 +508,18 @@ const Page = () => {
             if (message.event === "ai_response") {
                 console.log("Received AI response", message);
                 setData(prevData => {
-                    // DYNAMIC ID: Use phone number if available in message, else fallback to live_session_1 or find active
-                    // Since ai_response might not have phone, we need to find the active call or rely on valid ID.
-                    // Actually, for now, let's assume single active call or reuse the ID if we can't find phone.
-                    // BETTER: The server should send phone in ai_response? It doesn't currently.
-                    // Fallback: update the most recently modified call? 
-                    // To keep it simple for this fix: map "live_session_1" to the active call if we only support 1.
-                    // BUT: user said "new number -> old transcript". This implies we need to key by phone.
+                    // DYNAMIC ID: Use the backend-generated call ID
 
-                    // Strategy: If we have a single active call in the UI, update it.
-                    // If we have multiple, we need an ID.
-                    // Let's rely on "live_session_1" BUT ensure it's overwritten by incoming_call correctly.
+
+
+
+
 
                     const phone = (message as any).phone;
-                    // Use backend-generated ID first, then stored phone mapping, then phone fallback
-                    let liveCallId = "live_session_1";
-                    if ((message as any).id) {
-                        liveCallId = (message as any).id;
-                    } else if (phone && phone !== "Unknown" && phoneToIdRef.current[phone]) {
-                        liveCallId = phoneToIdRef.current[phone];
-                    } else if (phone && phone !== "Unknown") {
-                        liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
-                    }
+                    // Use backend-generated ID first, then stored phone mapping, then phone-derived fallback
+                    let liveCallId = (message as any).id
+                        || (phone && phone !== "Unknown" && phoneToIdRef.current[phone])
+                        || "unknown_call";
 
                     const currentCall = prevData[liveCallId] || {
                         ...emptyCall,
@@ -657,14 +644,10 @@ const Page = () => {
                 });
 
 
-                // Recalculate ID for selection logic since we are outside setData scope
                 const phone = (message as any).phone;
-                let liveCallId = "live_session_1";
-                if ((message as any).id) {
-                    liveCallId = (message as any).id;
-                } else if (phone && phone !== "Unknown") {
-                    liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
-                }
+                let liveCallId = (message as any).id
+                    || (phone && phone !== "Unknown" && phoneToIdRef.current[phone])
+                    || "unknown_call";
 
                 if (!selectedId) {
                     setSelectedId(liveCallId);
@@ -692,13 +675,10 @@ const Page = () => {
                 // FORCE RESET: When a new call comes in, we must wipe the previous state.
                 setData(prevData => {
                     const phone = (message as any).phone;
-                    // Use backend-generated ID first, then phone fallback
-                    let liveCallId = "live_session_1";
-                    if ((message as any).id) {
-                        liveCallId = (message as any).id;
-                    } else if (phone && phone !== "Unknown") {
-                        liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
-                    }
+                    // Use backend-generated ID — no live_session_ fallback
+                    let liveCallId = (message as any).id
+                        || (phone && phone !== "Unknown" && phoneToIdRef.current[phone])
+                        || "unknown_call";
 
                     // Store the phone → ID mapping so all future messages use this ID
                     if (phone && phone !== "Unknown") {
@@ -736,12 +716,9 @@ const Page = () => {
 
                 // Calculate ID again to set selection (needs to match the one inside setData)
                 const phone = (message as any).phone;
-                let liveCallId = "live_session_1";
-                if ((message as any).id) {
-                    liveCallId = (message as any).id;
-                } else if (phone && phone !== "Unknown") {
-                    liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
-                }
+                let liveCallId = (message as any).id
+                    || (phone && phone !== "Unknown" && phoneToIdRef.current[phone])
+                    || "unknown_call";
                 setSelectedId(liveCallId);
 
                 // Only show toast if NOT a recovery message, with deduplication
@@ -756,7 +733,7 @@ const Page = () => {
                 // Dispatch update: mark the call as dispatched (services sent)
                 const phone = (message as any).phone;
                 const dispatchType = (message as any).dispatch_type || "Emergency Services";
-                const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                const liveCallId = (message as any).id || (phone && phoneToIdRef.current[phone]) || "unknown_call";
 
                 setData(prev => {
                     if (prev[liveCallId]) {

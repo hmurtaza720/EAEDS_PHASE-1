@@ -259,7 +259,7 @@ const Page = () => {
                 if (message.event === "ai_response") {
                     setData(prevData => {
                         const phone = (message as any).phone;
-                        const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                        const liveCallId = (message as any).id || "unknown_call";
                         const currentCall = prevData[liveCallId] || {
                             ...emptyCall,
                             id: liveCallId,
@@ -303,7 +303,7 @@ const Page = () => {
                         };
                     });
                     const phone = (message as any).phone;
-                    const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                    const liveCallId = (message as any).id || "unknown_call";
                     if (selectedId !== liveCallId) setSelectedId(liveCallId);
                 } else if (message.data) {
                     setData(prevData => ({ ...prevData, ...message.data }));

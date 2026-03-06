@@ -41,7 +41,7 @@ export default function Dashboard() {
                     // Update live session specifically if it's currently active
                     setData(prevData => {
                         const phone = (message as any).phone;
-                        const liveCallId = (message as any).id || (phone ? "live_session_" + phone.replace(/[^0-9]/g, "") : "live_session_1");
+                        const liveCallId = (message as any).id || "unknown_call";
                         if (!prevData[liveCallId]) return prevData;
 
                         const currentCall = prevData[liveCallId];
@@ -70,14 +70,14 @@ export default function Dashboard() {
 
     // Split data into active and archived purely based on severity/status
     const calls = Object.values(data);
-    const activeCalls = calls.filter(c => c.severity === "CRITICAL" || c.severity === "MODERATE" || c.id.startsWith("live_session_") || c.status === "Connected");
+    const activeCalls = calls.filter(c => c.severity === "CRITICAL" || c.severity === "MODERATE" || c.status === "Connected");
     const archivedCalls = calls.filter(c => c.severity === "RESOLVED" || c.severity === "UNRESOLVED");
 
     const stats = {
         totalReceived: calls.length,
         aiHandled: calls.filter(c => c.responder_type === 'AI' || !c.responder_type).length,
         humanHandled: calls.filter(c => c.responder_type === 'Human').length,
-        criticalActive: activeCalls.filter(c => c.severity === 'CRITICAL' || c.status === "Connected" || c.id.startsWith("live_session_")).length,
+        criticalActive: activeCalls.filter(c => c.severity === 'CRITICAL' || c.status === "Connected").length,
         resolvedArchived: archivedCalls.length
     };
 

@@ -308,6 +308,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     for phone, sim in app.active_simulations.items():
                          await websocket.send_text(json.dumps({
                              "event": "incoming_call",
+                             "id": sim.get("id"),
                              "phone": phone,
                              "location_manual": sim.get("location", "Unknown"),
                              "city_state": sim.get("city_state", "Unknown"),
@@ -318,6 +319,7 @@ async def websocket_endpoint(websocket: WebSocket):
                          
                          await websocket.send_text(json.dumps({
                              "event": "ai_response",
+                             "id": sim.get("id"),
                              "phone": phone,
                              "user_text": "", 
                              "text": "", 
