@@ -31,7 +31,7 @@ export const US_STATES = [
     { code: "NH", name: "New Hampshire", tz: "America/New_York", cities: ["Manchester", "Nashua", "Concord"], coords: { lat: 43.1939, lng: -71.5724 } },
     { code: "NJ", name: "New Jersey", tz: "America/New_York", cities: ["Newark", "Jersey City", "Paterson"], coords: { lat: 40.0583, lng: -74.4057 } },
     { code: "NM", name: "New Mexico", tz: "America/Denver", cities: ["Albuquerque", "Las Cruces", "Rio Rancho"], coords: { lat: 34.5199, lng: -105.8701 } },
-    { code: "NY", name: "New York", tz: "America/New_York", cities: ["New York City", "Buffalo", "Rochester", "Yonkers"], coords: { lat: 40.7128, lng: -74.0060 } },
+    { code: "NY", name: "New York", tz: "America/New_York", cities: ["New York", "Buffalo", "Rochester", "Yonkers"], coords: { lat: 40.7128, lng: -74.0060 } },
     { code: "NC", name: "North Carolina", tz: "America/New_York", cities: ["Charlotte", "Raleigh", "Greensboro"], coords: { lat: 35.7596, lng: -79.0193 } },
     { code: "ND", name: "North Dakota", tz: "America/Chicago", cities: ["Fargo", "Bismarck", "Grand Forks"], coords: { lat: 47.5515, lng: -101.0020 } },
     { code: "OH", name: "Ohio", tz: "America/New_York", cities: ["Columbus", "Cleveland", "Cincinnati"], coords: { lat: 40.4173, lng: -82.9071 } },
@@ -200,7 +200,7 @@ export const CITY_COORDS: Record<string, { lat: number, lng: number }> = {
     "Las Cruces": { lat: 32.3199, lng: -106.7637 },
     "Rio Rancho": { lat: 35.2328, lng: -106.6630 },
     // New York
-    "New York City": { lat: 40.7128, lng: -74.0060 },
+    "New York": { lat: 40.7128, lng: -74.0060 },
     "Buffalo": { lat: 42.8864, lng: -78.8784 },
     //"Rochester": { lat: 43.1566, lng: -77.6088 }, // Conflicting
     "Yonkers": { lat: 40.9312, lng: -73.8988 },
