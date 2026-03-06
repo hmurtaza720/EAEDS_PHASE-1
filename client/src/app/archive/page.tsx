@@ -188,48 +188,61 @@ const Page = () => {
         }
     };
 
+    const lastGeocodedIdRef = React.useRef<string | null>(null);
+
     useEffect(() => {
         if (!selectedId || !data[selectedId]) return;
         const call = data[selectedId];
 
-        // If coords already exist, just center the map
+        // If coords already exist and are valid, just center the map
         if (call.location_coords && call.location_coords.lat !== 0 && call.location_coords.lng !== 0) {
             setCenter(call.location_coords);
             setZoom(15);
             return;
         }
 
-        // If no coords but we have a location name, geocode it
-        if (call.location_name && call.location_name !== "Unknown") {
-            const geocode = async () => {
-                try {
-                    const res = await fetch(
-                        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(call.location_name || "")}&format=json&limit=1`
-                    );
-                    const geoData = await res.json();
-                    if (geoData && geoData.length > 0) {
-                        const coords = {
-                            lat: parseFloat(geoData[0].lat),
-                            lng: parseFloat(geoData[0].lon)
-                        };
-                        // Update the call data with coords
-                        setData(prev => ({
-                            ...prev,
-                            [selectedId]: {
-                                ...prev[selectedId],
-                                location_coords: coords
-                            }
-                        }));
-                        setCenter(coords);
-                        setZoom(15);
-                    }
-                } catch (err) {
-                    console.error("Failed to geocode archive location:", err);
+        // Don't re-geocode the same call
+        if (lastGeocodedIdRef.current === selectedId) return;
+
+        // Determine what to geocode: prefer location_name, fallback to city_state
+        const locationQuery = (call.location_name && call.location_name !== "Unknown" && call.location_name !== "Detecting...")
+            ? call.location_name
+            : ((call as any).city_state && (call as any).city_state !== "Unknown")
+                ? (call as any).city_state
+                : null;
+
+        if (!locationQuery) return;
+
+        lastGeocodedIdRef.current = selectedId;
+
+        const geocode = async () => {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationQuery)}&format=json&limit=1`
+                );
+                const geoData = await res.json();
+                if (geoData && geoData.length > 0) {
+                    const coords = {
+                        lat: parseFloat(geoData[0].lat),
+                        lng: parseFloat(geoData[0].lon)
+                    };
+                    // Update the call data with coords
+                    setData(prev => ({
+                        ...prev,
+                        [selectedId]: {
+                            ...prev[selectedId],
+                            location_coords: coords
+                        }
+                    }));
+                    setCenter(coords);
+                    setZoom(15);
                 }
-            };
-            geocode();
-        }
-    }, [selectedId]);
+            } catch (err) {
+                console.error("Failed to geocode archive location:", err);
+            }
+        };
+        geocode();
+    }, [selectedId, data]);
 
     useEffect(() => {
         if (selectedId && data[selectedId]) {
