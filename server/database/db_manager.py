@@ -43,6 +43,14 @@ class DatabaseManager:
             cursor.execute("ALTER TABLE calls ADD COLUMN dispatched_services TEXT DEFAULT ''")
         except sqlite3.OperationalError:
             pass # Column already exists
+        try:
+            cursor.execute("ALTER TABLE calls ADD COLUMN latitude REAL")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+        try:
+            cursor.execute("ALTER TABLE calls ADD COLUMN longitude REAL")
+        except sqlite3.OperationalError:
+            pass # Column already exists
             
         conn.commit()
         conn.close()
@@ -71,7 +79,7 @@ class DatabaseManager:
             
         return f"{phone_part}-{date_part}-{time_part}-{loc_part}"
 
-    def save_call(self, transcript_list: list, emotion: str, location: str, phone: str = "Unknown", city_state: str = "Unknown", severity: str = "RESOLVED", dispatched_services: str = "", call_id: str = None):
+    def save_call(self, transcript_list: list, emotion: str, location: str, phone: str = "Unknown", city_state: str = "Unknown", severity: str = "RESOLVED", dispatched_services: str = "", call_id: str = None, latitude: float = None, longitude: float = None):
         """Saves a completed call to the database."""
         ended_at = datetime.now()
         started_at = ended_at # Simplified for now
@@ -84,12 +92,12 @@ class DatabaseManager:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO calls (id, started_at, ended_at, caller_location, detected_emotion, transcript, duration_seconds, caller_phone, caller_city_state, severity, dispatched_services)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (call_id, started_at, ended_at, location, emotion, transcript_json, 0, phone, city_state, severity, dispatched_services))
+            INSERT INTO calls (id, started_at, ended_at, caller_location, detected_emotion, transcript, duration_seconds, caller_phone, caller_city_state, severity, dispatched_services, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (call_id, started_at, ended_at, location, emotion, transcript_json, 0, phone, city_state, severity, dispatched_services, latitude, longitude))
         conn.commit()
         conn.close()
-        print(f" [DB] Call saved: {call_id} | Emotion: {emotion} | Phone: {phone} | Severity: {severity} | Dispatched: {dispatched_services}")
+        print(f" [DB] Call saved: {call_id} | Emotion: {emotion} | Phone: {phone} | Severity: {severity} | Dispatched: {dispatched_services} | Coords: ({latitude}, {longitude})")
         return call_id
 
     def get_recent_calls(self, limit=500):

@@ -287,6 +287,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         "name": "Caller",
                         "location_name": row["caller_location"] or "Unknown",
                         "city_state": row["caller_city_state"] if "caller_city_state" in row.keys() and row["caller_city_state"] else "Unknown",
+                        "location_coords": {"lat": row["latitude"], "lng": row["longitude"]} if "latitude" in row.keys() and row["latitude"] is not None and "longitude" in row.keys() and row["longitude"] is not None else None,
                         "time": row["ended_at"] or str(datetime.now()),
                         "emotions": [{"emotion": row["detected_emotion"] or "Neutral", "intensity": 0.8}],
                         "phone": row["caller_phone"] if "caller_phone" in row.keys() and row["caller_phone"] else "Unknown",
@@ -560,7 +561,9 @@ async def test_chat_proxy(req: TestChatRequest):
                 city_state=current_sim.get("city_state", "Unknown"),
                 severity=call_severity,
                 dispatched_services=dispatched_list,
-                call_id=current_sim.get("id")
+                call_id=current_sim.get("id"),
+                latitude=current_sim.get("latitude"),
+                longitude=current_sim.get("longitude")
             )
             print(f" 💾 [Proxy] Manual Save to DB: {call_id} | Severity: {call_severity} | Dispatched: {dispatched_list}")
             
@@ -704,6 +707,20 @@ async def test_chat_proxy(req: TestChatRequest):
             current_sim["location"] = address_to_map
             print(f" 📍 [Proxy] Map Action Detected: {address_to_map}")
             
+            # Geocode the extracted location to get coordinates
+            try:
+                import httpx as httpx_geo
+                geo_url = f"https://nominatim.openstreetmap.org/search?q={address_to_map}&format=json&limit=1"
+                async with httpx_geo.AsyncClient() as geo_client:
+                    geo_resp = await geo_client.get(geo_url, headers={"User-Agent": "EAEDS/1.0"}, timeout=5.0)
+                    geo_data = geo_resp.json()
+                    if geo_data and len(geo_data) > 0:
+                        current_sim["latitude"] = float(geo_data[0]["lat"])
+                        current_sim["longitude"] = float(geo_data[0]["lon"])
+                        print(f" 🌍 [Proxy] Geocoded: ({current_sim['latitude']}, {current_sim['longitude']})")
+            except Exception as geo_err:
+                print(f" ⚠️ [Proxy] Geocoding failed: {geo_err}")
+            
         # C. Handle Dispatch Actions
         if dispatched_services:
             current_sim["dispatched_services"] = current_sim.get("dispatched_services", []) + dispatched_services
@@ -728,7 +745,9 @@ async def test_chat_proxy(req: TestChatRequest):
                     city_state=current_sim.get("city_state", "Unknown"),
                     severity=call_severity,
                     dispatched_services=",".join(set(current_sim.get("dispatched_services", []))),
-                    call_id=current_sim.get("id")
+                    call_id=current_sim.get("id"),
+                    latitude=current_sim.get("latitude"),
+                    longitude=current_sim.get("longitude")
                 )
                 print(f" 💾 [Proxy] Call Saved to DB: {call_id} | Severity: {call_severity} | Dispatched: {','.join(current_sim.get('dispatched_services', []))}")
                 
@@ -782,6 +801,8 @@ async def test_chat_proxy(req: TestChatRequest):
             "text": clean_response,
             "emotion": req.emotion,
             "location": address_to_map if trigger_map else None,
+            "latitude": current_sim.get("latitude"),
+            "longitude": current_sim.get("longitude"),
             "city_state": current_sim.get("city_state", "Unknown"),
             "end_call": end_call_flag,
             "phone": req.phone,
