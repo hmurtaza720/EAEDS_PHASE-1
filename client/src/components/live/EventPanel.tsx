@@ -280,10 +280,12 @@ const EventPanel = ({
             <div className="h-[calc(100vh-200px)] space-y-1 overflow-y-auto px-1 scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-blue-800/80 hover:scrollbar-thumb-blue-800">
                 {data &&
                     Object.entries(data)
-                        .filter(([_, emergency]) =>
+                        .filter(([key, emergency]) =>
                             emergency.title?.toLowerCase().includes(search.toLowerCase()) ||
                             emergency.phone?.includes(search) ||
-                            emergency.location_name?.toLowerCase().includes(search.toLowerCase()),
+                            emergency.location_name?.toLowerCase().includes(search.toLowerCase()) ||
+                            key.toLowerCase().includes(search.toLowerCase()) ||
+                            emergency.id?.toLowerCase().includes(search.toLowerCase()),
                         )
                         .sort(([_, a], [__, b]) =>
                             new Date(a.time) < new Date(b.time) ? 1 : -1,
