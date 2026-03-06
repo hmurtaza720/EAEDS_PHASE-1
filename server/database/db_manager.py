@@ -92,7 +92,7 @@ class DatabaseManager:
         print(f" [DB] Call saved: {call_id} | Emotion: {emotion} | Phone: {phone} | Severity: {severity} | Dispatched: {dispatched_services}")
         return call_id
 
-    def get_recent_calls(self, limit=10):
+    def get_recent_calls(self, limit=500):
         """Retrieves the most recent calls."""
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
