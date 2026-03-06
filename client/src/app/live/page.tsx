@@ -94,7 +94,7 @@ const Page = () => {
     const lastToastRef = React.useRef<Record<string, number>>({});
     const showDedupedToast = (key: string, toastArgs: Parameters<typeof toast>[0]) => {
         const now = Date.now();
-        if (lastToastRef.current[key] && now - lastToastRef.current[key] < 3000) {
+        if (lastToastRef.current[key] && now - lastToastRef.current[key] < 10000) {
             return; // Skip duplicate
         }
         lastToastRef.current[key] = now;
@@ -654,9 +654,13 @@ const Page = () => {
                 }
 
                 if ((message as any).end_call) {
+                    const severity = (message as any).severity || "UNRESOLVED";
+                    const wasResolved = severity === "RESOLVED";
                     showDedupedToast('call_ended', {
                         title: "Call Ended",
-                        description: "The call has been resolved and archived.",
+                        description: wasResolved
+                            ? "The call has been resolved and archived."
+                            : "The call has been archived as unresolved.",
                         variant: "default"
                     });
                 }

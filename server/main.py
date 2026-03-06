@@ -805,6 +805,7 @@ async def test_chat_proxy(req: TestChatRequest):
             "longitude": current_sim.get("longitude"),
             "city_state": current_sim.get("city_state", "Unknown"),
             "end_call": end_call_flag,
+            "severity": call_severity if end_call_flag else None,
             "phone": req.phone,
             "dispatched_services": dispatched_services if dispatched_services else []
         }))
