@@ -286,6 +286,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         "title": "Emergency Call",
                         "name": "Caller",
                         "location_name": row["caller_location"] or "Unknown",
+                        "city_state": row["caller_city_state"] if "caller_city_state" in row.keys() and row["caller_city_state"] else "Unknown",
                         "time": row["ended_at"] or str(datetime.now()),
                         "emotions": [{"emotion": row["detected_emotion"] or "Neutral", "intensity": 0.8}],
                         "phone": row["caller_phone"] if "caller_phone" in row.keys() and row["caller_phone"] else "Unknown",

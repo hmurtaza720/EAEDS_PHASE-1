@@ -89,29 +89,37 @@ const Page = () => {
     }, []);
 
     const filteredData = Object.entries(data).reduce((acc, [key, call]) => {
-        // 1. Text Search (Local Search in EventPanel) - handled by EventPanel filter prop passing if needed,
-        // but EventPanel handles its own internal search state for the list.
-        // Wait, EventPanel maps over the 'data' passed to it.
-        // So this reduction should handle the shared filters (State, City, Emotion, Type).
+        // Archive constraint first: Only show ended calls (RESOLVED or UNRESOLVED)
+        if (call.severity !== "RESOLVED" && call.severity !== "UNRESOLVED") {
+            return acc;
+        }
 
         let match = true;
 
-        // State Filter
+        // State Filter — check both location_name and city_state
         if (filters.stateCode !== "ALL") {
             const loc = call.location_name || "";
+            const cityState = (call as any).city_state || "";
             const stateInfo = US_STATES.find(s => s.code === filters.stateCode);
             if (stateInfo) {
-                const stateMatch = loc.includes(` ${stateInfo.code}`) ||
+                const stateMatch =
+                    loc.includes(` ${stateInfo.code}`) ||
                     loc.includes(`, ${stateInfo.code}`) ||
-                    loc.toLowerCase().includes(stateInfo.name.toLowerCase());
+                    loc.toLowerCase().includes(stateInfo.name.toLowerCase()) ||
+                    cityState.includes(` ${stateInfo.code}`) ||
+                    cityState.includes(`, ${stateInfo.code}`) ||
+                    cityState.toLowerCase().includes(stateInfo.name.toLowerCase());
                 if (!stateMatch) match = false;
             }
         }
 
-        // City Filter
+        // City Filter — check both location_name and city_state
         if (match && filters.city !== "ALL") {
             const loc = call.location_name?.toLowerCase() || "";
-            if (!loc.includes(filters.city.toLowerCase())) match = false;
+            const cityState = ((call as any).city_state || "").toLowerCase();
+            if (!loc.includes(filters.city.toLowerCase()) && !cityState.includes(filters.city.toLowerCase())) {
+                match = false;
+            }
         }
 
         // Time Range Filter
@@ -129,17 +137,12 @@ const Page = () => {
             if (callTime < cutoff) match = false;
         }
 
-        // Status Filter
+        // Status Filter (RESOLVED / UNRESOLVED)
         if (match && filters.status !== "ALL") {
             if (call.severity !== filters.status) match = false;
         }
 
-        // Archive constraint: Only show ended calls (RESOLVED or UNRESOLVED)
-        if (match) {
-            if (call.severity === "RESOLVED" || call.severity === "UNRESOLVED") {
-                acc[key] = call;
-            }
-        }
+        if (match) acc[key] = call;
         return acc;
     }, {} as Record<string, Call>);
 
