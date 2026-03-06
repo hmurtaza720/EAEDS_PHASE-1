@@ -104,6 +104,9 @@ const Page = () => {
     // Track what location_name was last geocoded per call, to detect changes
     const geocodedNamesRef = React.useRef<Record<string, string>>({});
 
+    // Map phone numbers to backend-assigned call IDs (set once on incoming_call, reused on ai_response)
+    const phoneToIdRef = React.useRef<Record<string, string>>({});
+
     // Effect to Geocode Textual Locations coming from the LLM
     useEffect(() => {
         const geocodeLocations = async () => {
@@ -521,10 +524,12 @@ const Page = () => {
                     // Let's rely on "live_session_1" BUT ensure it's overwritten by incoming_call correctly.
 
                     const phone = (message as any).phone;
-                    // Use backend-generated ID first, then phone fallback, then default
+                    // Use backend-generated ID first, then stored phone mapping, then phone fallback
                     let liveCallId = "live_session_1";
                     if ((message as any).id) {
                         liveCallId = (message as any).id;
+                    } else if (phone && phone !== "Unknown" && phoneToIdRef.current[phone]) {
+                        liveCallId = phoneToIdRef.current[phone];
                     } else if (phone && phone !== "Unknown") {
                         liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
                     }
@@ -693,6 +698,11 @@ const Page = () => {
                         liveCallId = (message as any).id;
                     } else if (phone && phone !== "Unknown") {
                         liveCallId = "live_session_" + phone.replace(/[^0-9]/g, "");
+                    }
+
+                    // Store the phone → ID mapping so all future messages use this ID
+                    if (phone && phone !== "Unknown") {
+                        phoneToIdRef.current[phone] = liveCallId;
                     }
 
                     // Create a FRESH object, do not merge with old transcript

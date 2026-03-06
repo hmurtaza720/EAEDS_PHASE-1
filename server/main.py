@@ -491,7 +491,7 @@ async def test_chat_proxy(req: TestChatRequest):
         "city": req.city,
         "state": req.state,
         "emotion": req.emotion,
-        "reset": req.reset
+        "reset": req.reset,
     }
     
     # In-memory store for active simulations (Simple Dict)
@@ -622,6 +622,9 @@ async def test_chat_proxy(req: TestChatRequest):
         current_sim["transcript"].append({"role": "user", "content": req.message, "timestamp": str(datetime.now())})
 
     print(f" 📤 [Proxy] Sending to Colab: {req.message} ({req.emotion})")
+    
+    # Inject the call ID into the payload so the AI always knows which call this belongs to
+    payload["call_id"] = current_sim.get("id")
     
     try:
         # A. Forward to Colab
