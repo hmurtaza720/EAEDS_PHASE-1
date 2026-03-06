@@ -771,6 +771,7 @@ async def test_chat_proxy(req: TestChatRequest):
         # Broadcast to Dashboard
         await manager.broadcast(json.dumps({
             "event": "ai_response",
+            "id": current_sim.get("id"),
             "user_text": req.message,
             "text": clean_response,
             "emotion": req.emotion,
