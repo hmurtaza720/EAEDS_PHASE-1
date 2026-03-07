@@ -123,7 +123,8 @@ const Page = () => {
 
                     if (needsGeocode) {
                         try {
-                            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(call.location_name)}&format=json&limit=1`);
+                            const geoHost = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
+                            const res = await fetch(`http://${geoHost}:8000/api/geocode?q=${encodeURIComponent(call.location_name)}&limit=1`);
                             const geoData = await res.json();
 
                             if (geoData && geoData.length > 0) {

@@ -77,7 +77,8 @@ const Header = ({
 
         setIsSearching(true);
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5`);
+            const host = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
+            const res = await fetch(`http://${host}:8000/api/geocode?q=${encodeURIComponent(searchQuery)}&limit=5`);
             const data = await res.json();
             setSearchResults(data);
             setShowResults(true);

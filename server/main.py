@@ -462,6 +462,23 @@ def update_settings(user_id: int, settings_update: SettingsUpdate, db: Session =
     db.commit()
 
 # ========================================
+#  GEOCODING PROXY (Avoids CORS issues)
+# ========================================
+
+@app.get("/api/geocode")
+async def geocode_proxy(q: str, limit: int = 5):
+    """Proxy geocoding requests to Nominatim to avoid browser CORS restrictions."""
+    try:
+        import httpx as httpx_geo
+        url = f"https://nominatim.openstreetmap.org/search?q={q}&format=json&limit={limit}"
+        async with httpx_geo.AsyncClient() as client:
+            resp = await client.get(url, headers={"User-Agent": "EAEDS/1.0"}, timeout=5.0)
+            return resp.json()
+    except Exception as e:
+        print(f" ⚠️ [Geocode] Proxy error: {e}")
+        return []
+
+# ========================================
 #  SIMULATION & TESTING API (RAG PROXY)
 # ========================================
 
