@@ -6,7 +6,7 @@ import EventPanel from "@/components/live/EventPanel";
 import Header from "@/components/live/Header";
 import { FilterState } from "@/components/live/EventPanel";
 import { Call, CallProps } from "@/data/types";
-import { US_STATES } from "@/data/constants";
+import { US_STATES, CITY_COORDS } from "@/data/constants";
 import TranscriptPanel from "@/components/live/TranscriptPanel";
 import { ChevronRight, ChevronLeft, Info, BrainCircuit, Siren, FireExtinguisher, Ambulance, Phone } from "lucide-react";
 import EmotionCard from "@/components/live/EmotionCard";
@@ -15,12 +15,9 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import Map from "@/components/live/map/Map";
 
-
-const Map = dynamic(() => import("@/components/live/map/Map"), {
-    loading: () => <p>Rendering Map...</p>,
-    ssr: false,
-});
 
 interface ServerMessage {
     event: "db_response" | "ai_response";
@@ -188,63 +185,6 @@ const Page = () => {
         }
     };
 
-    const lastGeocodedIdRef = React.useRef<string | null>(null);
-
-    useEffect(() => {
-        if (!selectedId || !data[selectedId]) return;
-        const call = data[selectedId];
-
-        // If coords already exist and are valid, just center the map
-        if (call.location_coords && call.location_coords.lat !== 0 && call.location_coords.lng !== 0) {
-            setCenter(call.location_coords);
-            setZoom(15);
-            return;
-        }
-
-        // Don't re-geocode the same call
-        if (lastGeocodedIdRef.current === selectedId) return;
-
-        // Determine what to geocode: prefer location_name, fallback to city_state
-        const locationQuery = (call.location_name && call.location_name !== "Unknown" && call.location_name !== "Detecting...")
-            ? call.location_name
-            : ((call as any).city_state && (call as any).city_state !== "Unknown")
-                ? (call as any).city_state
-                : null;
-
-        if (!locationQuery) return;
-
-        lastGeocodedIdRef.current = selectedId;
-
-        const geocode = async () => {
-            try {
-                const host = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
-                const res = await fetch(
-                    `http://${host}:8000/api/geocode?q=${encodeURIComponent(locationQuery)}&limit=1`
-                );
-                const geoData = await res.json();
-                if (geoData && geoData.length > 0) {
-                    const coords = {
-                        lat: parseFloat(geoData[0].lat),
-                        lng: parseFloat(geoData[0].lon)
-                    };
-                    // Update the call data with coords
-                    setData(prev => ({
-                        ...prev,
-                        [selectedId]: {
-                            ...prev[selectedId],
-                            location_coords: coords
-                        }
-                    }));
-                    setCenter(coords);
-                    setZoom(15);
-                }
-            } catch (err) {
-                console.error("Failed to geocode archive location:", err);
-            }
-        };
-        geocode();
-    }, [selectedId, data]);
-
     useEffect(() => {
         if (selectedId && data[selectedId]) {
             const locName = data[selectedId].location_name;
@@ -341,6 +281,14 @@ const Page = () => {
         };
     }, []);
 
+    // Determine the map props similar to live page
+    const selectedCall = selectedId ? data[selectedId] : null;
+    const isPreciseAddress = selectedCall &&
+        selectedCall.location_name !== "" &&
+        selectedCall.location_name !== "Unknown" &&
+        selectedCall.location_name !== "Detecting..." &&
+        selectedCall.location_name !== ((selectedCall as any).city_state || "");
+
     return (
         <div className="flex h-full flex-col space-y-1 selection:bg-blue-500/30">
             <div className="rounded-xl border border-slate-800 bg-slate-900 shadow-xl relative z-[2000] drop-shadow-2xl">
@@ -367,14 +315,23 @@ const Page = () => {
                         center={center}
                         zoom={zoom}
                         searchedLocation={searchedLocation}
+                        cityCircle={
+                            selectedCall && !isPreciseAddress && selectedCall.location_coords
+                                ? {
+                                    lat: selectedCall.location_coords.lat,
+                                    lng: selectedCall.location_coords.lng,
+                                    label: selectedCall.location_name || (selectedCall as any).city_state || ""
+                                }
+                                : undefined
+                        }
                         pins={
-                            selectedId && data[selectedId]?.location_coords && data[selectedId]?.location_name
+                            isPreciseAddress && selectedCall?.location_coords
                                 ? [{
                                     coordinates: [
-                                        data[selectedId].location_coords!.lat,
-                                        data[selectedId].location_coords!.lng,
+                                        selectedCall.location_coords!.lat,
+                                        selectedCall.location_coords!.lng,
                                     ],
-                                    popupHtml: `<b>${data[selectedId].title || "Emergency Call"}</b><br>Location: ${data[selectedId].location_name}`,
+                                    popupHtml: `<b>${selectedCall.title || "Emergency Call"}</b><br>Location: ${selectedCall.location_name}`,
                                 }]
                                 : []
                         }
