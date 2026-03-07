@@ -462,18 +462,38 @@ def update_settings(user_id: int, settings_update: SettingsUpdate, db: Session =
     db.commit()
 
 # ========================================
-#  GEOCODING PROXY (Avoids CORS issues)
+#  GEOCODING PROXY (Avoids CORS & Rate Limits)
 # ========================================
+
+_geocode_cache = {}
 
 @app.get("/api/geocode")
 async def geocode_proxy(q: str, limit: int = 5):
-    """Proxy geocoding requests to Nominatim to avoid browser CORS restrictions."""
+    """Proxy geocoding requests to Nominatim to avoid browser CORS restrictions and cache results."""
+    # Check cache first
+    cache_key = f"{q}_{limit}"
+    if cache_key in _geocode_cache:
+        return _geocode_cache[cache_key]
+
     try:
         import httpx as httpx_geo
-        url = f"https://nominatim.openstreetmap.org/search?q={q}&format=json&limit={limit}"
+        from urllib.parse import quote_plus
+        url = f"https://nominatim.openstreetmap.org/search?q={quote_plus(q)}&format=json&limit={limit}"
+        headers = {
+            "User-Agent": "EAEDS-Emergency-Dispatch/1.0 (hassanrizvi@university.edu)",
+            "Accept": "application/json",
+            "Referer": "http://localhost:8000"
+        }
         async with httpx_geo.AsyncClient() as client:
-            resp = await client.get(url, headers={"User-Agent": "EAEDS/1.0"}, timeout=5.0)
-            return resp.json()
+            resp = await client.get(url, headers=headers, timeout=10.0)
+            if resp.status_code != 200:
+                print(f" ⚠️ [Geocode] Nominatim returned HTTP {resp.status_code}")
+                return []
+            
+            data = resp.json()
+            # Save to cache
+            _geocode_cache[cache_key] = data
+            return data
     except Exception as e:
         print(f" ⚠️ [Geocode] Proxy error: {e}")
         return []

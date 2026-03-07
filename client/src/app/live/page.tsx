@@ -306,7 +306,7 @@ const Page = () => {
                 const cs = (call as any).city_state || "";
                 const ln = call.location_name || "";
                 const isPrecise = ln !== "" && ln !== "Unknown" && ln !== "Detecting..." && ln !== cs;
-                return { center: call.location_coords, zoom: isPrecise ? 15 : 11 };
+                return { center: call.location_coords, zoom: isPrecise ? 15 : 10 };
             }
         }
 
@@ -729,6 +729,24 @@ const Page = () => {
                         phoneToIdRef.current[phone] = liveCallId;
                     }
 
+                    const cityStateStr = (message as any).city_state || "Unknown";
+                    let initialCoords = { lat: 0, lng: 0 };
+
+                    if (cityStateStr !== "Unknown") {
+                        const parts = cityStateStr.split(",").map((s: string) => s.trim());
+                        const cityName = parts[0];
+                        const stateCode = parts.length > 1 ? parts[1] : null;
+
+                        if (CITY_COORDS[cityName]) {
+                            initialCoords = CITY_COORDS[cityName];
+                        } else if (stateCode) {
+                            const stateObj = US_STATES.find(s => s.code === stateCode);
+                            if (stateObj?.coords) {
+                                initialCoords = stateObj.coords;
+                            }
+                        }
+                    }
+
                     // Create a FRESH object, do not merge with old transcript
                     const newCallData: Call = {
                         ...emptyCall,
@@ -738,7 +756,8 @@ const Page = () => {
                         name: `Caller ${(message as any).phone || "Unknown"}`,
                         severity: "CRITICAL",
                         location_name: (message as any).location_manual,
-                        city_state: (message as any).city_state || "Unknown",
+                        location_coords: initialCoords,
+                        city_state: cityStateStr,
                         type: "Emergency",
                         time: (message as any).timestamp || new Date().toISOString(),
                         // Reset Transcript completely
