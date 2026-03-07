@@ -122,25 +122,60 @@ const Page = () => {
                         || (geocodedNamesRef.current[id] !== call.location_name);
 
                     if (needsGeocode) {
-                        try {
-                            const geoHost = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
-                            const res = await fetch(`http://${geoHost}:8000/api/geocode?q=${encodeURIComponent(call.location_name)}&limit=1`);
-                            const geoData = await res.json();
+                        let coords: { lat: number; lng: number } | null = null;
 
-                            if (geoData && geoData.length > 0) {
-                                newData[id] = {
-                                    ...call,
-                                    location_coords: {
+                        // 1. Try to resolve from pre-stored constants first
+                        //    location_name for city-level is "City, ST" (e.g., "New York, NY")
+                        const cityState = (call as any).city_state || call.location_name;
+                        const isCityLevel = call.location_name === cityState;
+
+                        if (isCityLevel && cityState && cityState !== "Unknown") {
+                            const parts = cityState.split(",").map((s: string) => s.trim());
+                            const cityName = parts[0];
+                            const stateCode = parts.length > 1 ? parts[1] : null;
+
+                            // Check CITY_COORDS first (most precise for cities)
+                            if (CITY_COORDS[cityName]) {
+                                coords = CITY_COORDS[cityName];
+                                console.log(`📍 [Constants] ${cityName} → ${coords.lat}, ${coords.lng}`);
+                            }
+                            // Fallback: check US_STATES by state code
+                            else if (stateCode) {
+                                const stateObj = US_STATES.find(s => s.code === stateCode);
+                                if (stateObj?.coords) {
+                                    coords = stateObj.coords;
+                                    console.log(`📍 [Constants] State ${stateCode} → ${coords.lat}, ${coords.lng}`);
+                                }
+                            }
+                        }
+
+                        // 2. Fallback to Nominatim API for specific addresses (not city-level)
+                        if (!coords) {
+                            try {
+                                const geoHost = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
+                                const res = await fetch(`http://${geoHost}:8000/api/geocode?q=${encodeURIComponent(call.location_name)}&limit=1`);
+                                const geoData = await res.json();
+
+                                if (geoData && geoData.length > 0) {
+                                    coords = {
                                         lat: parseFloat(geoData[0].lat),
                                         lng: parseFloat(geoData[0].lon)
-                                    }
-                                };
-                                geocodedNamesRef.current[id] = call.location_name;
-                                updated = true;
-                                console.log(`📍 [Geocode] ${call.location_name} → ${geoData[0].lat}, ${geoData[0].lon}`);
+                                    };
+                                    console.log(`📍 [Geocode API] ${call.location_name} → ${coords.lat}, ${coords.lng}`);
+                                }
+                            } catch (err) {
+                                console.error("Failed to geocode LLM location:", err);
                             }
-                        } catch (err) {
-                            console.error("Failed to geocode LLM location:", err);
+                        }
+
+                        // Apply coordinates if found
+                        if (coords) {
+                            newData[id] = {
+                                ...call,
+                                location_coords: coords
+                            };
+                            geocodedNamesRef.current[id] = call.location_name;
+                            updated = true;
                         }
                     }
                 }
