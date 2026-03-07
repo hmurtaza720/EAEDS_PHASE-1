@@ -28,12 +28,14 @@ interface MapProps {
     zoom?: number;
     selectedCoordinates?: [number, number];
     searchedLocation?: { lat: number; lng: number; name: string } | null;
+    cityCircle?: { lat: number; lng: number; label?: string } | null;
 }
 
-const Map: React.FC<MapProps> = ({ center, pins, zoom = 4, selectedCoordinates, searchedLocation }) => {
+const Map: React.FC<MapProps> = ({ center, pins, zoom = 4, selectedCoordinates, searchedLocation, cityCircle }) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<L.Map | null>(null);
     const searchMarkerRef = useRef<L.Marker | null>(null);
+    const cityCircleRef = useRef<L.Circle | null>(null);
     const [mapReady, setMapReady] = useState(false);
     const [pois, setPois] = useState<any[]>([]);
 
@@ -163,6 +165,40 @@ const Map: React.FC<MapProps> = ({ center, pins, zoom = 4, selectedCoordinates, 
         }
 
     }, [mapReady, pins, selectedCoordinates, pois]);
+
+    // Handle City Circle (shown when only city/state is known)
+    useEffect(() => {
+        if (!mapReady || !mapInstance.current) return;
+
+        // Clear previous city circle
+        if (cityCircleRef.current) {
+            mapInstance.current.removeLayer(cityCircleRef.current);
+            cityCircleRef.current = null;
+        }
+
+        // Don't show city circle if we have a selectedCoordinates (specific address)
+        if (!cityCircle || selectedCoordinates) return;
+
+        const { lat, lng, label } = cityCircle;
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        // Draw a large city-level circle (5km radius)
+        const circle = L.circle([lat, lng], {
+            color: 'rgba(59, 130, 246, 0.6)',
+            fillColor: 'rgba(59, 130, 246, 0.08)',
+            fillOpacity: 0.4,
+            radius: 5000, // 5km radius for city-level
+            weight: 2,
+            dashArray: '8, 6'
+        }).addTo(mapInstance.current);
+
+        if (label) {
+            circle.bindPopup(`<b>📍 Approximate Area</b><br>${label}`);
+        }
+
+        cityCircleRef.current = circle;
+
+    }, [mapReady, cityCircle, selectedCoordinates]);
 
     // Fetch POIs when selected location changes
     useEffect(() => {

@@ -267,7 +267,11 @@ const Page = () => {
         if (selectedId && data[selectedId]) {
             const call = data[selectedId];
             if (call.location_coords) {
-                return { center: call.location_coords, zoom: 15 };
+                // Determine if this is city-level or precise address
+                const cs = (call as any).city_state || "";
+                const ln = call.location_name || "";
+                const isPrecise = ln !== "" && ln !== "Unknown" && ln !== "Detecting..." && ln !== cs;
+                return { center: call.location_coords, zoom: isPrecise ? 15 : 11 };
             }
         }
 
@@ -829,32 +833,51 @@ const Page = () => {
 
                 {/* Column 2: Map Workspace */}
                 <div className="relative flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/20 shadow-2xl z-[10]">
-                    <Map
-                        center={center}
-                        zoom={zoom}
-                        searchedLocation={searchedLocation}
-                        selectedCoordinates={
-                            selectedId && data[selectedId]?.location_coords
-                                ? [data[selectedId].location_coords?.lat!, data[selectedId].location_coords?.lng!]
-                                : undefined
-                        }
-                        pins={
-                            Object.entries(filteredData)
-                                .filter(
-                                    ([_, call]) =>
-                                        call.location_coords && call.location_name,
-                                )
-                                .map(([_, call]) => {
-                                    return {
-                                        coordinates: [
-                                            call.location_coords?.lat as number,
-                                            call.location_coords?.lng as number,
-                                        ],
-                                        popupHtml: `<b>${call.title}</b><br>Location: ${call.location_name}`,
-                                    };
-                                })
-                        }
-                    />
+                    {(() => {
+                        // Determine if the selected call has a precise address or just city/state
+                        const selectedCall = selectedId ? data[selectedId] : null;
+                        const cityState = (selectedCall as any)?.city_state || "";
+                        const locationName = selectedCall?.location_name || "";
+                        const hasPreciseAddress = selectedCall?.location_coords
+                            && locationName !== ""
+                            && locationName !== "Unknown"
+                            && locationName !== "Detecting..."
+                            && locationName !== cityState;
+
+                        return (
+                            <Map
+                                center={center}
+                                zoom={zoom}
+                                searchedLocation={searchedLocation}
+                                cityCircle={
+                                    selectedCall?.location_coords && !hasPreciseAddress
+                                        ? { lat: selectedCall.location_coords.lat, lng: selectedCall.location_coords.lng, label: cityState || locationName }
+                                        : null
+                                }
+                                selectedCoordinates={
+                                    hasPreciseAddress && selectedCall?.location_coords
+                                        ? [selectedCall.location_coords.lat, selectedCall.location_coords.lng]
+                                        : undefined
+                                }
+                                pins={
+                                    Object.entries(filteredData)
+                                        .filter(([_, call]) => {
+                                            // Only show pins for calls with precise addresses
+                                            const cs = (call as any).city_state || "";
+                                            const ln = call.location_name || "";
+                                            return call.location_coords && ln && ln !== "Unknown" && ln !== "Detecting..." && ln !== cs;
+                                        })
+                                        .map(([_, call]) => ({
+                                            coordinates: [
+                                                call.location_coords?.lat as number,
+                                                call.location_coords?.lng as number,
+                                            ],
+                                            popupHtml: `<b>${call.title}</b><br>Location: ${call.location_name}`,
+                                        }))
+                                }
+                            />
+                        );
+                    })()}
 
                     {/* Collapsible Overlay */}
                     {selectedId && data[selectedId] && (
