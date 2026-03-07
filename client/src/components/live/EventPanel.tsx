@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, Filter, Search, ShieldCheck, Phone, MapPin, MessageSquare, X, Clock, Shield } from "lucide-react";
+import { AlertCircle, AlertTriangle, ChevronDown, Filter, Search, ShieldCheck, Phone, MapPin, MessageSquare, X, Clock, Shield } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -52,6 +52,7 @@ const EventPanel = ({
 }: EventPanelProps) => {
     const [search, setSearch] = useState("");
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
     // Helper: relative time
     const getRelativeTime = (isoDate: string) => {
@@ -277,6 +278,28 @@ const EventPanel = ({
                 </div>
             )}
 
+            {/* Total count + Sort toggle */}
+            {data && title !== "Emergencies" && (
+                <div className="flex items-center justify-between px-3 mb-2">
+                    <span className="text-xs text-slate-400 font-medium">
+                        {Object.entries(data).filter(([key, e]) =>
+                            e.title?.toLowerCase().includes(search.toLowerCase()) ||
+                            e.phone?.includes(search) ||
+                            e.location_name?.toLowerCase().includes(search.toLowerCase()) ||
+                            key.toLowerCase().includes(search.toLowerCase()) ||
+                            e.id?.toLowerCase().includes(search.toLowerCase())
+                        ).length} calls
+                    </span>
+                    <button
+                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-white font-medium transition-colors"
+                        onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                    >
+                        {sortOrder === "newest" ? "Newest" : "Oldest"}
+                        <ChevronDown size={14} className={cn("transition-transform", sortOrder === "oldest" && "rotate-180")} />
+                    </button>
+                </div>
+            )}
+
             <div className="h-[calc(100vh-200px)] space-y-1 overflow-y-auto px-1 scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-blue-800/80 hover:scrollbar-thumb-blue-800">
                 {data &&
                     Object.entries(data)
@@ -288,7 +311,9 @@ const EventPanel = ({
                             emergency.id?.toLowerCase().includes(search.toLowerCase()),
                         )
                         .sort(([_, a], [__, b]) =>
-                            new Date(a.time) < new Date(b.time) ? 1 : -1,
+                            sortOrder === "newest"
+                                ? (new Date(a.time) < new Date(b.time) ? 1 : -1)
+                                : (new Date(a.time) > new Date(b.time) ? 1 : -1),
                         )
                         .map(([_, emergency]) => {
                             const lastMsg = emergency.transcript?.length > 0
