@@ -20,13 +20,15 @@ const Header = ({
     city,
     setCity,
     filters,
-    onLocationSearch
+    onLocationSearch,
+    onFilterChange
 }: {
     connected: boolean;
     city: string;
     setCity: (city: string) => void;
     filters?: FilterState;
     onLocationSearch?: (loc: { lat: number; lng: number; name: string }) => void;
+    onFilterChange?: (filters: FilterState) => void;
 }) => {
     const [time, setTime] = useState("");
 
@@ -182,13 +184,48 @@ const Header = ({
                     </div>
                     <div className="h-8 w-[1px] bg-slate-700" />
 
-                    <div className="flex flex-col items-end px-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Supervised Sector</span>
-                        <div className="flex items-center space-x-2">
-                            <span className="text-xs font-black text-blue-400 uppercase tracking-tight">
-                                {filters?.city !== "ALL" ? `${filters?.city}, ` : ""}{selectedState.name}
-                            </span>
-                            <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1.5">Supervised Sector</span>
+                        <div className="flex items-center gap-1.5">
+                            {filters && onFilterChange ? (
+                                <>
+                                    <Select value={filters.stateCode} onValueChange={(val) => onFilterChange({ ...filters, stateCode: val, city: "ALL" })}>
+                                        <SelectTrigger className="h-6 min-w-[90px] max-w-[120px] rounded-md border-slate-700/50 bg-slate-800/40 text-[10px] font-bold text-blue-400 uppercase tracking-tight px-2 py-0 gap-1 hover:bg-slate-800 transition-colors">
+                                            <SelectValue placeholder="All States" />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper" side="bottom" className="border-slate-700 bg-slate-900 text-slate-200 z-[2001] w-[var(--radix-select-trigger-width)]">
+                                            <div className="max-h-[250px] overflow-y-auto">
+                                                {US_STATES.map(s => (
+                                                    <SelectItem key={s.code} value={s.code} className="text-xs font-medium cursor-pointer">{s.name}</SelectItem>
+                                                ))}
+                                            </div>
+                                        </SelectContent>
+                                    </Select>
+                                    {filters.stateCode !== "ALL" && (
+                                        <Select value={filters.city} onValueChange={(val) => onFilterChange({ ...filters, city: val })}>
+                                            <SelectTrigger className="h-6 min-w-[80px] max-w-[110px] rounded-md border-slate-700/50 bg-slate-800/40 text-[10px] font-bold text-blue-400 uppercase tracking-tight px-2 py-0 gap-1 hover:bg-slate-800 transition-colors">
+                                                <SelectValue placeholder="All Cities" />
+                                            </SelectTrigger>
+                                            <SelectContent position="popper" side="bottom" className="border-slate-700 bg-slate-900 text-slate-200 z-[2001] w-[var(--radix-select-trigger-width)]">
+                                                <div className="max-h-[250px] overflow-y-auto">
+                                                    <SelectItem value="ALL" className="text-xs font-medium cursor-pointer">All Cities</SelectItem>
+                                                    {US_STATES.find(s => s.code === filters.stateCode)?.cities.map(c => (
+                                                        <SelectItem key={c} value={c} className="text-xs font-medium cursor-pointer">{c}</SelectItem>
+                                                    ))}
+                                                </div>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)] shrink-0" />
+                                </>
+                            ) : (
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-xs font-black text-blue-400 uppercase tracking-tight">
+                                        {filters?.city !== "ALL" ? `${filters?.city}, ` : ""}{selectedState.name}
+                                    </span>
+                                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

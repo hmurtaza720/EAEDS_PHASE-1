@@ -663,6 +663,18 @@ async def test_chat_proxy(req: TestChatRequest):
     # Append User Message to Transcript (Filtered)
     if not req.reset and req.message.strip().upper() != "RESET":
         current_sim["transcript"].append({"role": "user", "content": req.message, "timestamp": str(datetime.now())})
+        
+        # BROADCAST USER MESSAGE IMMEDIATELY TO DASHBOARD
+        await manager.broadcast(json.dumps({
+            "event": "ai_response",
+            "user_text": req.message,
+            "text": "",
+            "id": current_sim.get("id"),
+            "phone": req.phone,
+            "emotion": req.emotion,
+            "location": current_sim.get("location", "Unknown")
+        }))
+
 
     print(f" 📤 [Proxy] Sending to Colab: {req.message} ({req.emotion})")
     

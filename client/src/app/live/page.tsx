@@ -75,6 +75,7 @@ const Page = () => {
     const [selectedId, setSelectedId] = useState<string | undefined>();
     const [resolvedIds, setResolvedIds] = useState<string[]>([]);
     const [city, setCity] = useState("ALL");
+    const [liveClockTime, setLiveClockTime] = useState("");
     const [filters, setFilters] = useState<FilterState>({
         stateCode: "ALL",
         city: "ALL",
@@ -130,23 +131,11 @@ const Page = () => {
                         const isCityLevel = call.location_name === cityState;
 
                         if (isCityLevel && cityState && cityState !== "Unknown") {
-                            const parts = cityState.split(",").map((s: string) => s.trim());
-                            const cityName = parts[0];
-                            const stateCode = parts.length > 1 ? parts[1] : null;
-
-                            // Check CITY_COORDS first (most precise for cities)
-                            if (CITY_COORDS[cityName]) {
-                                coords = CITY_COORDS[cityName];
-                                console.log(`📍 [Constants] ${cityName} → ${coords.lat}, ${coords.lng}`);
-                            }
-                            // Fallback: check US_STATES by state code
-                            else if (stateCode) {
-                                const stateObj = US_STATES.find(s => s.code === stateCode);
-                                if (stateObj?.coords) {
-                                    coords = stateObj.coords;
-                                    console.log(`📍 [Constants] State ${stateCode} → ${coords.lat}, ${coords.lng}`);
-                                }
-                            }
+                            // SKIP city-level geocoding entirely — wait for the actual address
+                            // The LLM will provide a specific address shortly after
+                            console.log(`📍 [Skip] City-level location '${cityState}' — waiting for specific address`);
+                            geocodedNamesRef.current[id] = call.location_name;
+                            continue;
                         }
 
                         // 2. Fallback to Nominatim API for specific addresses (not city-level)
@@ -186,9 +175,52 @@ const Page = () => {
         };
 
         // Adding a slight debounce to avoid slamming the Nominatim API
-        const timeoutId = setTimeout(geocodeLocations, 1000);
+        const timeoutId = setTimeout(geocodeLocations, 500);
         return () => clearTimeout(timeoutId);
     }, [data]);
+
+    // Persist dispatched_services to sessionStorage whenever data changes
+    useEffect(() => {
+        const dispatchMap: Record<string, string[]> = {};
+        for (const [id, call] of Object.entries(data)) {
+            const services = (call as any).dispatched_services;
+            if (services && services.length > 0) {
+                dispatchMap[id] = services;
+            }
+        }
+        if (Object.keys(dispatchMap).length > 0) {
+            sessionStorage.setItem('eaeds_dispatched', JSON.stringify(dispatchMap));
+        }
+    }, [data]);
+
+    // Live clock for the selected call's timezone
+    useEffect(() => {
+        const updateClock = () => {
+            if (!selectedId || !data[selectedId]) { setLiveClockTime(""); return; }
+            const call = data[selectedId];
+            const locationStr = (call as any).city_state || call.location_name || "";
+            const matched = US_STATES.find(s =>
+                s.code !== "ALL" && (
+                    locationStr.includes(`, ${s.code}`) ||
+                    locationStr.includes(` ${s.code}`) ||
+                    locationStr.toLowerCase().includes(s.name.toLowerCase())
+                )
+            );
+            if (matched) {
+                try {
+                    setLiveClockTime(new Date().toLocaleTimeString("en-US", {
+                        timeZone: matched.tz,
+                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+                    }));
+                } catch { setLiveClockTime(""); }
+            } else {
+                setLiveClockTime("");
+            }
+        };
+        updateClock();
+        const interval = setInterval(updateClock, 1000);
+        return () => clearInterval(interval);
+    }, [selectedId, data]);
 
     // Manual Reconnect Function
     const forceReconnect = () => {
@@ -229,15 +261,33 @@ const Page = () => {
 
     // Filter data based on selected city
     const filteredData = Object.entries(data).reduce((acc, [key, call]) => {
-        // Auto-pass active live calls (Connected, not ended) regardless of filters
-        if (call.status === "Connected" && call.severity !== "RESOLVED" && call.severity !== "UNRESOLVED") {
-            acc[key] = call;
+        // ALWAYS exclude historical/archived calls from the live feed
+        if ((call as any).is_archived) {
             return acc;
         }
 
         let match = true;
+        const activeSeverityFilter = filters.severity && filters.severity !== "ALL" ? filters.severity : null;
 
-        if (filters.stateCode !== "ALL") {
+        // 1. If an explicit severity is selected from EventPanel, enforce it strictly
+        if (activeSeverityFilter) {
+            if (call.severity !== activeSeverityFilter) match = false;
+        }
+        else {
+            // Default "ALL" view logic:
+            // Show all live calls including RESOLVED ones — they should NOT vanish
+            if (call.severity === "UNRESOLVED") {
+                // Auto-expire UNRESOLVED ones after 2 mins from main feed
+                const endedAt = new Date(call.time).getTime();
+                const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+                if (endedAt < twoMinutesAgo) {
+                    match = false;
+                }
+            }
+        }
+
+        // 2. Additional Dropdown filters (State, City, Status, TimeRange)
+        if (match && filters.stateCode !== "ALL") {
             const loc = call.location_name || "";
             const stateInfo = US_STATES.find(s => s.code === filters.stateCode);
             if (stateInfo) {
@@ -269,21 +319,6 @@ const Page = () => {
 
         if (match && filters.status !== "ALL") {
             if (call.severity !== filters.status) match = false;
-        }
-
-        if (match) {
-            // RESOLVED calls are hidden from the live dashboard (they're in archive)
-            if (call.severity === "RESOLVED") {
-                match = false;
-            }
-            // UNRESOLVED calls: show them but auto-expire after 2 minutes
-            else if (call.severity === "UNRESOLVED") {
-                const endedAt = new Date(call.time).getTime();
-                const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-                if (endedAt < twoMinutesAgo) {
-                    match = false; // Expired, hide it
-                }
-            }
         }
 
         if (match) acc[key] = call;
@@ -696,7 +731,7 @@ const Page = () => {
                 if ((message as any).end_call) {
                     const severity = (message as any).severity || "UNRESOLVED";
                     const wasResolved = severity === "RESOLVED";
-                    showDedupedToast('call_ended', {
+                    showDedupedToast(`call_ended_${liveCallId}`, {
                         title: "Call Ended",
                         description: wasResolved
                             ? "The call has been resolved and archived."
@@ -708,7 +743,7 @@ const Page = () => {
                 // Notify when LLM dispatches services
                 const dispatchedNow = (message as any).dispatched_services;
                 if (dispatchedNow && Array.isArray(dispatchedNow) && dispatchedNow.length > 0) {
-                    showDedupedToast(`dispatch_${dispatchedNow.join(',')}`, {
+                    showDedupedToast(`dispatch_${liveCallId}_${dispatchedNow.join(',')}`, {
                         title: "🚨 Units Dispatched",
                         description: `AI dispatched: ${dispatchedNow.join(', ')}`,
                         variant: "default"
@@ -760,16 +795,27 @@ const Page = () => {
                         city_state: cityStateStr,
                         type: "Emergency",
                         time: (message as any).timestamp || new Date().toISOString(),
-                        // Reset Transcript completely
-                        transcript: [{ role: "assistant", content: "911 dispatch connected. Tracking location..." }],
+                        transcript: [],
                         status: "Connected",
                         responder_type: "AI",
-                        // Map the explicit emotion from incoming_call
                         emotions: (message as any).emotion ? [{
                             emotion: (message as any).emotion,
                             intensity: 0.9
                         }] : []
                     };
+
+                    // Restore dispatched_services from sessionStorage if this is a recovery
+                    try {
+                        const saved = sessionStorage.getItem('eaeds_dispatched');
+                        if (saved) {
+                            const dispatchMap = JSON.parse(saved);
+                            if (dispatchMap[liveCallId]) {
+                                (newCallData as any).dispatched_services = dispatchMap[liveCallId];
+                                // If services were dispatched, mark as resolved
+                                newCallData.severity = "RESOLVED";
+                            }
+                        }
+                    } catch { /* ignore parse errors */ }
 
                     return {
                         ...prevData,
@@ -786,7 +832,7 @@ const Page = () => {
 
                 // Only show toast if NOT a recovery message, with deduplication
                 if (!(message as any).is_recovery) {
-                    showDedupedToast('incoming_call', {
+                    showDedupedToast(`incoming_call_${liveCallId}`, {
                         title: "Incoming Emergency Call",
                         description: `Call from ${(message as any).location_manual}`,
                         variant: "destructive"
@@ -815,9 +861,15 @@ const Page = () => {
                 setData(prevData => {
                     // We only want to pull in the history to `data`
                     // Live sessions are handled by incoming_call, ai_response, and end_call events.
+
+                    const historicalData = { ...message.data };
+                    Object.keys(historicalData).forEach(key => {
+                        historicalData[key].is_archived = true;
+                    });
+
                     return {
                         ...prevData,
-                        ...message.data
+                        ...historicalData
                     };
                 });
             } else if (message.event === "audio_relay" && (message as any).chunk) {
@@ -854,7 +906,7 @@ const Page = () => {
     return (
         <div className="flex h-full flex-col space-y-1 selection:bg-blue-500/30">
             <div className="rounded-xl border border-slate-800 bg-slate-900 shadow-xl flex justify-between items-center pr-4 relative z-[2000] drop-shadow-2xl">
-                <Header connected={connected} city={city} setCity={handleHeaderCityChange} filters={filters} onLocationSearch={setSearchedLocation} />
+                <Header connected={connected} city={city} setCity={handleHeaderCityChange} filters={filters} onLocationSearch={setSearchedLocation} onFilterChange={handleFilterChange} />
                 <div className="flex space-x-2">
                     <Button
                         onClick={handleResetSystem}
@@ -882,6 +934,7 @@ const Page = () => {
                         filters={filters}
                         onFilterChange={handleFilterChange}
                         countersData={data}
+                        showSearchAndFilters={false}
                     />
                 </div>
 
@@ -978,7 +1031,14 @@ const Page = () => {
                                                     <BrainCircuit size={14} className="text-blue-400" />
                                                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Emotion Intel</p>
                                                 </div>
-                                                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                                                <div className="flex items-center gap-2">
+                                                    {liveClockTime && (
+                                                        <span className="text-[10px] font-mono text-blue-400/80" suppressHydrationWarning>
+                                                            {liveClockTime}
+                                                        </span>
+                                                    )}
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                                                </div>
                                             </div>
                                             <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-hide">
                                                 {data[selectedId]?.emotions?.map((em, idx) => (
@@ -1015,7 +1075,7 @@ const Page = () => {
                                         {/* Rapid Dispatch Section */}
                                         {(() => {
                                             const call = data[selectedId];
-                                            const isCallEnded = call?.severity === "RESOLVED" || call?.severity === "UNRESOLVED" || call?.status === "Disconnected";
+                                            const isCallEnded = call?.status === "Disconnected";
                                             const dispatched = (call as any)?.dispatched_services || [];
 
                                             if (isCallEnded) {

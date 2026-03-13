@@ -185,6 +185,95 @@ const Page = () => {
         }
     };
 
+    const lastGeocodedIdRef = React.useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!selectedId || !data[selectedId]) return;
+        const call = data[selectedId];
+
+        // Determine if this is a precise street-level address or just city-level
+        const cs = (call as any).city_state || "";
+        const ln = call.location_name || "";
+        const isPrecise = ln !== "" && ln !== "Unknown" && ln !== "Detecting..." && ln !== cs;
+
+        // If coords already exist and are valid, just center the map based on precision
+        if (call.location_coords && call.location_coords.lat !== 0 && call.location_coords.lng !== 0) {
+            setCenter(call.location_coords);
+            setZoom(isPrecise ? 15 : 10);
+            return;
+        }
+
+        // Don't re-geocode the same call
+        if (lastGeocodedIdRef.current === selectedId) return;
+
+        // Determine what to geocode: prefer location_name, fallback to city_state
+        const locationQuery = (call.location_name && call.location_name !== "Unknown" && call.location_name !== "Detecting...")
+            ? call.location_name
+            : ((call as any).city_state && (call as any).city_state !== "Unknown")
+                ? (call as any).city_state
+                : null;
+
+        if (!locationQuery) return;
+
+        lastGeocodedIdRef.current = selectedId;
+
+        const geocode = async () => {
+            let coords: { lat: number; lng: number } | null = null;
+
+            // 1. Try to resolve from pre-stored constants first for city-level
+            const cityState = (call as any).city_state || call.location_name;
+            const isCityLevel = call.location_name === cityState;
+
+            if (isCityLevel && cityState && cityState !== "Unknown") {
+                const parts = cityState.split(",").map((s: string) => s.trim());
+                const cityName = parts[0];
+                const stateCode = parts.length > 1 ? parts[1] : null;
+
+                if (CITY_COORDS[cityName]) {
+                    coords = CITY_COORDS[cityName];
+                } else if (stateCode) {
+                    const stateObj = US_STATES.find(s => s.code === stateCode);
+                    if (stateObj?.coords) {
+                        coords = stateObj.coords;
+                    }
+                }
+            }
+
+            // 2. Fallback to Nominatim API for specific addresses
+            if (!coords) {
+                try {
+                    const host = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
+                    const res = await fetch(
+                        `http://${host}:8000/api/geocode?q=${encodeURIComponent(locationQuery)}&limit=1`
+                    );
+                    const geoData = await res.json();
+                    if (geoData && geoData.length > 0) {
+                        coords = {
+                            lat: parseFloat(geoData[0].lat),
+                            lng: parseFloat(geoData[0].lon)
+                        };
+                    }
+                } catch (err) {
+                    console.error("Failed to geocode archive location:", err);
+                }
+            }
+
+            if (coords) {
+                // Update the call data with coords
+                setData(prev => ({
+                    ...prev,
+                    [selectedId]: {
+                        ...prev[selectedId],
+                        location_coords: coords!
+                    }
+                }));
+                setCenter(coords);
+                setZoom(isPrecise ? 15 : 10);
+            }
+        };
+        geocode();
+    }, [selectedId, data]);
+
     useEffect(() => {
         if (selectedId && data[selectedId]) {
             const locName = data[selectedId].location_name;
