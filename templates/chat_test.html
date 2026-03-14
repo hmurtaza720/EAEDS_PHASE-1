@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>911 Dispatcher Simulation</title>
+    <!-- Tailwind CSS (CDN for testing) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chat-bubble {
+            max-width: 75%;
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+        }
+
+        .user-bubble {
+            background-color: #3B82F6;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .ai-bubble {
+            background-color: #374151;
+            color: white;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        .action-tag {
+            color: #F59E0B;
+            font-weight: bold;
+            font-size: 0.8em;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1F2937;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4B5563;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-gray-100 font-sans h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR: CONFIG -->
+    <div class="w-1/4 bg-gray-800 p-6 border-r border-gray-700 flex flex-col justify-between">
+        <div>
+            <h2 class="text-2xl font-bold mb-6 text-blue-400">🚑 Call Configuration</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-2">Caller Phone (ID)</label>
+                    <input type="text" id="phone" value="555-0100"
+                        class="w-full bg-gray-700 border border-gray-600 rounded p-2 focus:border-blue-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-sm font-bold mb-2">City</label>
+                        <select id="city"
+                            class="w-full bg-gray-700 border border-gray-600 rounded p-2 focus:border-blue-500 outline-none">
+                            <option value="New York">New York</option>
+                            <option value="Buffalo">Buffalo</option>
+                            <option value="Albany">Albany</option>
+                            <option value="Rochester">Rochester</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">State</label>
+                        <select id="state"
+                            class="w-full bg-gray-700 border border-gray-600 rounded p-2 focus:border-blue-500 outline-none">
+                            <option value="AL">AL</option>
+                            <option value="AK">AK</option>
+                            <option value="AZ">AZ</option>
+                            <option value="AR">AR</option>
+                            <option value="CA">CA</option>
+                            <option value="CO">CO</option>
+                            <option value="CT">CT</option>
+                            <option value="DE">DE</option>
+                            <option value="FL">FL</option>
+                            <option value="GA">GA</option>
+                            <option value="HI">HI</option>
+                            <option value="ID">ID</option>
+                            <option value="IL">IL</option>
+                            <option value="IN">IN</option>
+                            <option value="IA">IA</option>
+                            <option value="KS">KS</option>
+                            <option value="KY">KY</option>
+                            <option value="LA">LA</option>
+                            <option value="ME">ME</option>
+                            <option value="MD">MD</option>
+                            <option value="MA">MA</option>
+                            <option value="MI">MI</option>
+                            <option value="MN">MN</option>
+                            <option value="MS">MS</option>
+                            <option value="MO">MO</option>
+                            <option value="MT">MT</option>
+                            <option value="NE">NE</option>
+                            <option value="NV">NV</option>
+                            <option value="NH">NH</option>
+                            <option value="NJ">NJ</option>
+                            <option value="NM">NM</option>
+                            <option value="NY" selected>NY</option>
+                            <option value="NC">NC</option>
+                            <option value="ND">ND</option>
+                            <option value="OH">OH</option>
+                            <option value="OK">OK</option>
+                            <option value="OR">OR</option>
+                            <option value="PA">PA</option>
+                            <option value="RI">RI</option>
+                            <option value="SC">SC</option>
+                            <option value="SD">SD</option>
+                            <option value="TN">TN</option>
+                            <option value="TX">TX</option>
+                            <option value="UT">UT</option>
+                            <option value="VT">VT</option>
+                            <option value="VA">VA</option>
+                            <option value="WA">WA</option>
+                            <option value="WV">WV</option>
+                            <option value="WI">WI</option>
+                            <option value="WY">WY</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-2">Caller Emotion</label>
+                    <select id="emotion"
+                        class="w-full bg-gray-700 border border-gray-600 rounded p-2 focus:border-blue-500 outline-none">
+                        <option value="Neutral">Neutral</option>
+                        <option value="Panicked" selected>Panicked</option>
+                        <option value="Angry">Angry</option>
+                        <option value="Crying">Crying</option>
+                        <option value="Hysterical">Hysterical</option>
+                    </select>
+                </div>
+
+                <div class="mt-4 p-4 bg-gray-700 rounded text-sm text-gray-300">
+                    <p><strong>System Status:</strong></p>
+                    <p id="status" class="text-green-400 font-mono">Ready to connect...</p>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="endCall()"
+            class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition mb-2">
+            🛑 End Call & Archive
+        </button>
+
+        <button onclick="resetCall()"
+            class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition">
+            Reset / New Call
+        </button>
+    </div>
+
+    <!-- MAIN: CHAT -->
+    <div class="flex-1 flex flex-col">
+        <!-- HEADER -->
+        <div class="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-6 shadow-lg z-10">
+            <h1 class="text-xl font-bold tracking-wide">🎙️ LIVE DISPATCH SIMULATION</h1>
+            <div class="flex items-center space-x-4">
+                <span class="flex h-3 w-3 relative">
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <span class="text-sm font-mono text-gray-400">AI ACTIVE</span>
+            </div>
+        </div>
+
+        <!-- MESSAGES AREA -->
+        <div id="chat-window" class="flex-1 overflow-y-auto p-6 flex flex-col space-y-2">
+            <!-- Initial Greeting -->
+            <div class="chat-bubble ai-bubble bg-gray-700">
+                <p>911, where is your emergency?</p>
+            </div>
+        </div>
+
+        <!-- INPUT AREA -->
+        <div class="h-20 bg-gray-800 border-t border-gray-700 p-4 flex items-center space-x-4">
+            <input type="text" id="user-input" placeholder="Describe the emergency..."
+                class="flex-1 bg-gray-700 text-white border border-gray-600 rounded-full px-6 py-3 focus:border-blue-500 outline-none"
+                onkeypress="handleEnter(event)">
+
+            <button onclick="sendMessage()"
+                class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 transition shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const statusEl = document.getElementById('status');
+
+        // State → Cities mapping
+        const stateCities = {
+            'AL': ['Birmingham', 'Montgomery', 'Huntsville', 'Mobile', 'Tuscaloosa'],
+            'AK': ['Anchorage', 'Fairbanks', 'Juneau', 'Sitka'],
+            'AZ': ['Phoenix', 'Tucson', 'Mesa', 'Scottsdale', 'Tempe'],
+            'AR': ['Little Rock', 'Fort Smith', 'Fayetteville', 'Springdale'],
+            'CA': ['Los Angeles', 'San Francisco', 'San Diego', 'Sacramento', 'San Jose'],
+            'CO': ['Denver', 'Colorado Springs', 'Aurora', 'Boulder', 'Fort Collins'],
+            'CT': ['Hartford', 'New Haven', 'Stamford', 'Bridgeport', 'Waterbury'],
+            'DE': ['Wilmington', 'Dover', 'Newark', 'Middletown'],
+            'FL': ['Miami', 'Orlando', 'Tampa', 'Jacksonville', 'Fort Lauderdale'],
+            'GA': ['Atlanta', 'Savannah', 'Augusta', 'Macon', 'Athens'],
+            'HI': ['Honolulu', 'Hilo', 'Kailua', 'Pearl City'],
+            'ID': ['Boise', 'Meridian', 'Nampa', 'Idaho Falls'],
+            'IL': ['Chicago', 'Springfield', 'Naperville', 'Aurora', 'Peoria'],
+            'IN': ['Indianapolis', 'Fort Wayne', 'Evansville', 'South Bend', 'Carmel'],
+            'IA': ['Des Moines', 'Cedar Rapids', 'Davenport', 'Sioux City'],
+            'KS': ['Wichita', 'Overland Park', 'Kansas City', 'Topeka', 'Olathe'],
+            'KY': ['Louisville', 'Lexington', 'Bowling Green', 'Frankfort'],
+            'LA': ['New Orleans', 'Baton Rouge', 'Shreveport', 'Lafayette'],
+            'ME': ['Portland', 'Lewiston', 'Bangor', 'Augusta'],
+            'MD': ['Baltimore', 'Annapolis', 'Frederick', 'Rockville', 'Bethesda'],
+            'MA': ['Boston', 'Worcester', 'Springfield', 'Cambridge', 'Lowell'],
+            'MI': ['Detroit', 'Grand Rapids', 'Ann Arbor', 'Lansing', 'Flint'],
+            'MN': ['Minneapolis', 'Saint Paul', 'Rochester', 'Duluth', 'Bloomington'],
+            'MS': ['Jackson', 'Gulfport', 'Hattiesburg', 'Biloxi'],
+            'MO': ['Kansas City', 'Saint Louis', 'Springfield', 'Columbia', 'Jefferson City'],
+            'MT': ['Billings', 'Missoula', 'Great Falls', 'Helena'],
+            'NE': ['Omaha', 'Lincoln', 'Bellevue', 'Grand Island'],
+            'NV': ['Las Vegas', 'Reno', 'Henderson', 'North Las Vegas', 'Sparks'],
+            'NH': ['Manchester', 'Nashua', 'Concord', 'Dover'],
+            'NJ': ['Newark', 'Jersey City', 'Trenton', 'Paterson', 'Elizabeth'],
+            'NM': ['Albuquerque', 'Santa Fe', 'Las Cruces', 'Rio Rancho'],
+            'NY': ['New York', 'Buffalo', 'Albany', 'Rochester', 'Syracuse'],
+            'NC': ['Charlotte', 'Raleigh', 'Durham', 'Greensboro', 'Winston-Salem'],
+            'ND': ['Fargo', 'Bismarck', 'Grand Forks', 'Minot'],
+            'OH': ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Akron'],
+            'OK': ['Oklahoma City', 'Tulsa', 'Norman', 'Broken Arrow', 'Edmond'],
+            'OR': ['Portland', 'Salem', 'Eugene', 'Bend', 'Medford'],
+            'PA': ['Philadelphia', 'Pittsburgh', 'Allentown', 'Harrisburg', 'Erie'],
+            'RI': ['Providence', 'Warwick', 'Cranston', 'Pawtucket'],
+            'SC': ['Charleston', 'Columbia', 'Greenville', 'Myrtle Beach'],
+            'SD': ['Sioux Falls', 'Rapid City', 'Aberdeen', 'Pierre'],
+            'TN': ['Nashville', 'Memphis', 'Knoxville', 'Chattanooga', 'Clarksville'],
+            'TX': ['Houston', 'Austin', 'Dallas', 'San Antonio', 'Fort Worth'],
+            'UT': ['Salt Lake City', 'Provo', 'West Valley City', 'Ogden', 'St. George'],
+            'VT': ['Burlington', 'Montpelier', 'Rutland', 'South Burlington'],
+            'VA': ['Virginia Beach', 'Richmond', 'Norfolk', 'Arlington', 'Alexandria'],
+            'WA': ['Seattle', 'Tacoma', 'Spokane', 'Bellevue', 'Olympia'],
+            'WV': ['Charleston', 'Huntington', 'Morgantown', 'Parkersburg'],
+            'WI': ['Milwaukee', 'Madison', 'Green Bay', 'Kenosha', 'Racine'],
+            'WY': ['Cheyenne', 'Casper', 'Laramie', 'Gillette']
+        };
+
+        // Link State dropdown → City dropdown
+        document.getElementById('state').addEventListener('change', function () {
+            const citySelect = document.getElementById('city');
+            const cities = stateCities[this.value] || ['Unknown'];
+            citySelect.innerHTML = '';
+            cities.forEach((c, i) => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                if (i === 0) opt.selected = true;
+                citySelect.appendChild(opt);
+            });
+        });
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 1. Add User Message
+            appendMessage(text, 'user');
+            userInput.value = '';
+            statusEl.innerText = "Connecting to HQ...";
+
+            // 2. Prepare Payload
+            const payload = {
+                message: text,
+                phone: document.getElementById('phone').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                emotion: document.getElementById('emotion').value,
+                reset: false
+            };
+
+            try {
+                // 3. Call Local Backend Proxy
+                const res = await fetch('/api/test-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error("Backend Error");
+
+                const data = await res.json();
+
+                // 4. Add AI Response
+                // Check if map update happened
+                let actionText = "";
+                if (data.trigger_map) {
+                    actionText = `<span class="action-tag">📍 MAP UPDATED: ${data.address_to_map}</span>`;
+                }
+
+                appendMessage(data.spoken_response + actionText, 'ai');
+                statusEl.innerText = "Connected (Latency: Low)";
+
+                // 5. Handle End Call
+                if (data.end_call) {
+                    appendMessage("🚫 CALL ENDED (Dispatcher Disconnected)", 'system');
+                    statusEl.innerText = "Call Ended.";
+                    userInput.disabled = true;
+                    userInput.placeholder = "Call ended. Reset to start new.";
+                } else if (data.spoken_response && data.spoken_response.includes("END_CALL")) {
+                    appendMessage("🚫 CALL ENDED BY AI DISPATCHER", 'system');
+                    endCall(true);
+                }
+
+            } catch (err) {
+                console.error(err);
+                appendMessage("❌ CONNECTION ERROR: Check Local Server / Colab URL", 'ai');
+                statusEl.innerText = "ERROR: See Console";
+            }
+        }
+
+        function appendMessage(html, sender) {
+            const div = document.createElement('div');
+            div.className = `chat-bubble ${sender === 'user' ? 'user-bubble' : 'ai-bubble'}`;
+            // Use innerHTML safely for simple text and spans
+            div.innerHTML = html;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function endCall(force = false) {
+            if (!force && !confirm("Are you sure you want to END this call and archive it?")) return;
+
+            const payload = {
+                message: "END_CALL",
+                phone: document.getElementById('phone').value,
+                end_call: true
+            };
+
+            try {
+                const res = await fetch('/api/test-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (data.end_call) {
+                    appendMessage("🛑 CALL ENDED MANUALLY (Archived to Dashboard)", 'system');
+                    statusEl.innerText = "Call Ended & Archived.";
+                    userInput.disabled = true;
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to end call: " + err);
+            }
+        }
+
+        async function resetCall() {
+            chatWindow.innerHTML = '';
+            appendMessage("911, where is your emergency?", 'ai');
+
+            // Send Reset Signal
+            const payload = {
+                message: "RESET",
+                phone: document.getElementById('phone').value,
+                reset: true
+            };
+
+            // Fire and forget reset
+            fetch('/api/test-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            statusEl.innerText = "System Reset. New Call.";
+
+            // Generate New Phone Number
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4 digit random
+            document.getElementById('phone').value = `555-${randomSuffix}`;
+        }
+
+        // Init with random phone
+        window.onload = function () {
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('phone').value = `555-${randomSuffix}`;
+        };
+    </script>
+</body>
+
+</html>

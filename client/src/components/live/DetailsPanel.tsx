@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Call } from "@/app/live/page";
+import { Call } from "@/data/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CallProps } from "@/app/live/page";
+import { CallProps } from "@/data/types";
 import { cn } from "@/lib/utils";
 import {
     ArrowLeftRightIcon,
@@ -10,6 +10,10 @@ import {
     History,
     Play,
     Volume2,
+    Phone,
+    ExternalLink,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -18,13 +22,18 @@ import ChatInterface from "./ChatInterface";
 
 interface TranscriptPanelProps extends CallProps {
     handleTransfer: (id: string) => void;
-    handleResolve: (id: string) => void;
+    handleResolve: (id: string, dispatchType?: string) => void;
     mode?: "live" | "archive";
     toggleMute?: () => void;
     toggleHold?: () => void;
     handleHangup?: () => void;
     isMuted?: boolean;
     isOnHold?: boolean;
+    relatedCalls?: { id: string; title: string; time: string }[];
+    onSelectRelatedCall?: (id: string) => void;
+    isManualMode?: boolean;
+    isMapOverlayOpen?: boolean;
+    onToggleMapOverlay?: () => void;
 }
 
 import { Mic, MicOff, Pause, PhoneOff } from "lucide-react"; // Import new icons
@@ -41,6 +50,10 @@ const TranscriptPanel = ({
     handleHangup,
     isMuted = false,
     isOnHold = false,
+    relatedCalls = [],
+    onSelectRelatedCall,
+    isMapOverlayOpen,
+    onToggleMapOverlay,
 }: TranscriptPanelProps) => {
     const [loading, setLoading] = useState(false);
 
@@ -62,6 +75,15 @@ const TranscriptPanel = ({
             {/* 1. Header & Live Connection Status */}
             <div className="flex items-center justify-between px-4 py-3 bg-slate-950/50">
                 <div className="flex items-center space-x-2">
+                    {onToggleMapOverlay && (
+                        <button
+                            onClick={onToggleMapOverlay}
+                            title={isMapOverlayOpen ? "Collapse Map Details" : "Expand Map Details"}
+                            className="flex h-5 w-5 items-center justify-center rounded-sm bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700 mr-1"
+                        >
+                            {isMapOverlayOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                        </button>
+                    )}
                     <History size={16} className="text-blue-400" />
                     <p className="text-xs font-bold uppercase tracking-widest text-slate-300">Action Sidebar</p>
                 </div>
@@ -106,6 +128,36 @@ const TranscriptPanel = ({
                         <ChatInterface call={call} selectedId={selectedId} />
                     </div>
                 </div>
+
+                {/* Related Calls Section (Archive Mode Only) */}
+                {mode === "archive" && relatedCalls && relatedCalls.length > 0 && (
+                    <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-950/10 p-3">
+                        <div className="flex items-center space-x-2">
+                            <Phone size={12} className="text-amber-400" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                                Related Calls ({relatedCalls.length})
+                            </p>
+                        </div>
+                        <p className="text-[10px] text-slate-400 italic">Same caller has other calls on record:</p>
+                        <div className="space-y-1.5">
+                            {relatedCalls.map((rc) => (
+                                <button
+                                    key={rc.id}
+                                    onClick={() => onSelectRelatedCall?.(rc.id)}
+                                    className="w-full flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-left hover:bg-slate-700/50 hover:border-amber-500/30 transition-all group"
+                                >
+                                    <div>
+                                        <p className="text-[11px] font-semibold text-slate-200 group-hover:text-amber-300 transition-colors">{rc.title}</p>
+                                        <p className="text-[9px] text-slate-500 font-mono">
+                                            {new Date(rc.time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                    <ExternalLink size={12} className="text-slate-500 group-hover:text-amber-400 transition-colors" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* 6. Call Recording (Archive Mode Only) */}
                 {/* 6. Call Recording (Archive Mode Only) - REMOVED per user request */}

@@ -1,0 +1,1558 @@
+
+--- EXTRACTING: S31F25-FYPFINALPROPOSAL.pdf ---
+
+   
+ 
+   
+ 
+DHA Suffa University 
+Final Year Project 
+ 
+Emotion Aware Emergency Dispatch System (EAEDS) 
+S31F25 
+FYP Proposal 
+ 
+Submitted By 
+Abdullah Shaikh(ds221042)  
+Syed Murtaza Hassan(ds221026) 
+Tahir Mehdi(ds221011) 
+Syed Muhammad Baqar(ds221043) 
+Supervisor 
+Ms. Shehla Andleeb  
+Co-Supervisor 
+Ms. Mashal Tariq 
+ 
+
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+ 
+ 
+Document Sign off Sheet 
+Document Information 
+ 
+Project Title Emotion Aware Emergency Dispatch 
+System (EAEDS) 
+Document Project Proposal 
+Document Version 1.0 
+Identifier S31F25-PP 
+Status Final 
+Author(s) Abdullah Shaikh,Murtaza Hassan,Tahir 
+Mehdi,Syed Muhammad Baqar 
+Approver(s) Miss Shehla Andleeb 
+Issue Date 27-10-2025 
+ 
+Name Role Signature Date 
+Abdullah Shaikh Team Lead   
+Syed Murtaza Hassan Team Member 2   
+Tahir Mehdi Team Member 3   
+Syed Muhammad Baqar Team Member 4   
+Ms. Shehla Andleeb Supervisor   
+Ms. Mashal Tariq Co-Supervisor   
+ 
+Revision History 
+ 
+Date Version Description Author 
+04/1/2026 1.0 Initial document Abdullah Shaikh,Syed Murtaza 
+Hassan,Syed Muhammad 
+Baqar,Tahir Mehdi 
+ 
+ 
+ 
+ 
+
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+Definition of Terms, Acronyms, and Abbreviations 
+Terms Description 
+EAEDS Emotion Aware Emergency Dispatch System, which is a system designed to analyze 
+the emotions of callers and help dispatchers in their work.  
+LLM A model that is train on  alot of data like whole world data like chat gpt,gemini and 
+many more.  
+Whisper an open -source ASR model created by OpenAI that is used for converting speech 
+into text.  
+Latency  the time it takes for a system to respond to an action.  
+GPU Graphics Processing Unit, specialized hardware that speeds up AI calculations.  
+FastAPI Python framework used in our project backend for creating apis.  
+Next.js React framework used for frontend in our project.  
+SQLite Database for storing calls and other works  
+Dashboard  the main page where live call information, emotions, and location of caller is 
+displayed. In our project it is called midnight dashboard  
+JSON JavaScript Object Notation. A structured data format used to store transcripts and 
+emotion data.  
+UI/UX Design of how our dashboard looks  
+SQLite Database for storing calls and other works  
+Call Session A single emergency interaction that includes audio, transcript, emotion data, and 
+metadata such as time and location.  
+BERT Bidirectional Encoder Representations a model used for understanding natural 
+language and analyzing emotions.  
+Whisper an open -source ASR model created by OpenAI that is used for converting speech 
+into text.  
+Open Smile an open -source tool that extracts acoustic and emotional features from audio signals.  
+ 
+ 
+Table of Contents 
+Document Information..............................................................................................................2 
+1Introduction ....................................................................................................................................3 
+1.1Problem Statement ..................................................................................................................4 
+1.2    Product Position Statement: ................................................................................................4 
+1.3Project Motivation and Background .......................................................................................4 
+1.4Objectives ................................................................................................................................4 
+1.5Literature Review and GAP Analysis .....................................................................................4 
+2 Project Vision................................................................................................................................5 
+2.1Business Case and SWOT Analysis........................................................................................5 
+2.2    Stakeholder Summary .........................................................................................................6 
+2.3     User Summary ....................................................................................................................6 
+2.4Business Objectives and Success Criteria:..............................................................................6 
+
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+2.5Project Risks and Risk Mitigation Plan...................................................................................7 
+2.6Assumptions and Dependencies..............................................................................................7 
+3Project Scope..................................................................................................................................8 
+3.1In Scope ...................................................................................................................................8 
+3.2Out of Scope ............................................................................................................................8 
+4Proposed Methodology ..................................................................................................................8 
+4.2Team Role & responsibilities ..................................................................................................9 
+4.3Requirement Development Methodology ...............................................................................9 
+4.4High level Architecture / Design.............................................................................................9 
+5 Project Planning ..........................................................................................................................10 
+5.1Gantt Chart ............................................................................................................................10 
+6Project Requirements ...................................................................................................................12 
+6.1Software tools requirements:.................................................................................................12 
+6.2Hardware requirements .........................................................................................................12 
+7Budget/Costing ............................................................................................................................12 
+7.1    Estimated Budgeted Cost of the Project............................................................................12 
+8 Project Deliverables (you may change according to your project methodology).......................14 
+8.1Phase I - Alpha Prototype......................................................................................................14 
+8.2Phase II - Beta Prototype.......................................................................................................14 
+8.3Phase III - Release Candidate................................................................................................14 
+8.4Phase IV - Final Product .......................................................................................................14 
+9Proposed GUI (Prototype) ...........................................................................................................15 
+10Meetings held with supervisor and/or client. .............................................................................17 
+11References ..................................................................................................................................18 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+ 1 Introduction  
+1.1 Problem Statement 
+Global emergency services are facing critical staffing shortages, with reports showing an 
+82% deficit in 911 call centers. Human operators are burdened by high call volumes and 
+high-stress environments, leading to: 
+Increased response times due to cognitive overload. 
+Human errors in information recording and dispatch decisions. 
+Lack of context, as traditional systems rely on audio-only communication without 
+automated sentiment analysis. 
+ 
+1.2    Product Position Statement: 
+The Emotion-Aware Emergency Dispatch System (EAEDS) is an AI -powered dispatch 
+operator which is constructed for essential emergency response centers. Not like a  
+traditional CAD (Computer Aided Dispatch) systems, EAEDS reviews the audio and 
+emotion of the caller in real-time with the use of local GPU processing, which provides 
+controllers with immediate transcription, emotional telemetry, and triage 
+recommendations without depending on external cloud services. 
+   
+1.3 Project Motivation and Background  
+Emergency dispatch systems are considered as the first line of defense in safety of public. 
+However, current setups are no longer used, depending a much on manual entry and 
+human reasoning under too much pressure. They are encouraged by nowadays 
+improvements and updates in local AI inference (Quantized LLMs), the main aim of this 
+project is to fill the gap with the help of creating a smart operator that usually listens, 
+understands, and thinks at the same time as the human operator and convert raw audio 
+into actionable logistical data immediately within a seconds. 
+ 
+1.4 Objectives 
+Reduce Triage Time: Automate the collection of details (Name, Location, Type of 
+Emergency) to speed up dispatch. 
+Enhance Situational Awareness: Provide operators with live visual indicators of the 
+caller’s emotional state (Panic vs. Calm). 
+Ensure Data Privacy & Reliability: Operate entirely on local hardware (NVIDIA 
+GPU), eliminating privacy concerns and internet dependency regarding cloud APIs.  
+Operational Resilience: Ensure the interface remains responsive even under heavy load. 
+ 
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+1.5 Literature Review and GAP Analysis 
+Reddy, S., & Kompalli, S. (2022). Emotion Detection using Multimodal Analysis. - 
+Discusses using audio and text for emotion detection but relies on cloud APIs which 
+introduces latency. 
+Huang, J., et al. (2020). Whisper and ASR Systems. - Establishes the accuracy of 
+Whisper but highlights the computational cost for real-time usage. 
+ 
+GAP Analysis: 
+Most nowadays existing "Smart 911" solutions depends on cloud-based APIs 
+(Google Cloud Speech, AWS Transcribe). This gives introducion to two critical 
+gaps: 
+ Latency: Internet round-trip times are not acceptable for split -second 
+emergency decisions. 
+Privacy/Security: Sending emergency call audio to third -party clouds goes 
+against the  harsh data sovereignty laws. 
+Our Solution (EAEDS) closes these gaps by processing the entire AI pipeline 
+(Whisper + BERT + LLM) locally on the workstation's GPU, by making sure 0-hop 
+privacy and minimum latency. 
+ 
+2 Project Vision  
+ 
+2.1 Business Case and SWOT Analysis  
+Business Case:  
+By deploying EAEDS, emergency centers can manage 30% more calls with the same and 
+stable staff levels by removing data entry confirmation to AI. The clearance of repeated 
+and frequent cloud subscription outlay (API usage fees) results in a important reduct ion 
+in Operational Expenditure (OpEx) after the initial and beginning hardware commitment. 
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+ 
+SWOT Analysis: 
+Strengths Weaknesses Opportunities Threats 
+Privacy First: No 
+data leaves the 
+facility (Local 
+GPU).   
+Hardware cost: 
+Requirement of 
+high-end NVIDIA 
+GPUs (RTX 3060+) 
+is needed.  
+Government 
+Contracts: High 
+requirement for 
+independent AI 
+solutions. 
+Model 
+Hallucination: AI 
+may hear wrong and 
+misunderstand 
+addresses which is 
+basically mitigated 
+by human-in-loop. 
+Low Latency: Rapid 
+and fast decisions 
+without internet 
+delay and decisions 
+are not slowed by 
+internet. 
+Setup Complexity: It 
+is very hard to install 
+than a web-SaaS. 
+Expansion: It is a 
+modular design that 
+allows  Medical and 
+Fire specifics. 
+Hardware Failure: It 
+is a one and single 
+point of failure if 
+GPU burns out and 
+stop working. 
+ 
+2.2    Stakeholder Summary 
+ 
+Type Description Responsibilities 
+Primary Users 911 Dispatchers  Monitor dashboard, verify and check AI 
+suggestions, dispatch units.  
+Secondary Users  First Responders 
+(Police/EMS) 
+Receive processed and incident reports and 
+location data.  
+Administrators  System Admins  Controls and maintain GPU servers, improve 
+Docker containers, handle logs.  
+ 
+2.3     User Summary 
+ 
+Name Description Responsibilities Stakeholder 
+Dispatcher  Trained 
+emergency 
+operator  
+Manage calls, review AI transcripts, override  
+AI decisions if wrong.  
+Internal  
+Administrator  Technical 
+Officer 
+Ensure the system uptime, handle backups through 
+Docker. 
+Internal  
+ 
+ 
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+2.4 Business Objectives and Success Criteria:           
+ Sub-2-Second Latency: Transcription should must appear within 2 seconds of speech. 
+99.9% Local Uptime:System must operate and work without internet access.  
+Accuracy:Emotion detection must match with the human consensus >80% of the time. 
+ 
+2.5 Project Risks and Risk Mitigation Plan  
+Project Risks: 
+ 
+GPU Resource Exhaustion:Processing Whisper, LLM, and BERT simultaneously might 
+crash VRAM. 
+ Model Hallucination:The LLM will might suggest "Fire Dept" for a "Firearm" incident.  
+Audio Quality:Poor signal Quality will lead to bad transcription.  
+ 
+Risk Mitigation Plan: 
+ 
+Quantization: 
+Usage of 4-bit quantized models (GGUF/AWQ) to fit 3 distinct models into 8GB VRAM.  
+Human-in-the-Loop: 
+The actions are only recommended by the AI dispatcher, the human Dispatcher must click 
+"Dispatch" to confirm it  
+Fallback Mode: 
+The system reverts to a standard "Dumb" phone interface immediately if the AI fails.  
+2.6 Assumptions and Dependencies  
+Assumptions 
+The deployment site has secure power and a workstation with an NVIDIA GPU 
+(6GB+ VRAM). 
+Callers must speak English. 
+ 
+Dependencies:  
+NVIDIA CUDA Toolkit: It is essential for local acceleration. 
+Docker:It is essential for containerized deployment. 
+Mapbox/Leaflet:It is essential for rendering the offline-capable map tiles. 
+ 
+ 
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+ 
+3 Project Scope 
+   
+The design and development of a fully functional local-first dispatch assistant prototype 
+is covered by the project. 
+ 
+ 
+3.1 In Scope 
+Real-time Speech-to-Text: It is local Whisper inference. 
+ Emotion Detection: It is Acoustic (OpenSMILE) + Semantic (BERT) analysis. 
+Smart Dispatch Logic:It is Local LLM (Mistral/Phi-3) deciding priority. 
+Midnight Dashboard: It is Next.js based dark -mode UI. 
+Local Architecture: It is Full offline capability (except Map tiles initially). 
+ 
+3.2 Out of Scope 
+  PSTN Hardware integration: We use SIP/WebSockets, and do not use physical telephone 
+wires. 
+ Legal Liability: The System is decision-support only. 
+ Multi-language Support:There must be English only for this version. 
+ 
+ 
+4 Proposed Methodology 
+ 
+4.1 SDLC Approach (Waterfall/Agile/Spiral)  
+ 
+We are following an Agile Iterative methodology.  
+1.  Phase 1 (MVP): Basic transcription and Dashboard that is completed.  
+2.  Phase 2 (Intelligence): Integrating Local LLM and BERT that is current.  
+3.  Phase 3 (Refinement): Optimization present for latency and UI Polish.  
+This allows us to check the heavy GPU load early and help in adjusting the model sizes 
+accordingly.  
+ 
+  . 
+. 
+. 
+ 
+ 
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+ 
+4.2 Team Role & responsibilities  
+Ms. Shaila - Project Supervisor 
+    Ms. Mashal Tariq - Project Co-supervisor 
+     
+    Abdullah Shaikh - Team Leader 
+    Responsibilities - Project Management, Dashboard UI (Next.js), SRS/Documentation.  
+     
+    Syed Murtaza Hassan - Team Member 
+    Responsibilities - Backend Architecture (FastAPI), AI Model Integration 
+(Whisper/LLM), GPU Optimization. 
+  
+    Tahir Mehdi - Team Member 
+    Responsibilities - WebSocket Engine, Database Management (SQLite), Real-time 
+Synchronization. 
+     
+    Syed Muhammad Baqar - Team Member 
+    Responsibilities - Frontend Components, Testing, QA & Bug Fixing. 
+  
+4.3 Requirement Development Methodology  
+  
+Data Collection: 
+500+ mock emergency call transcripts are collected together and audio samplesa are also 
+collected to create a fine-tuning dataset. 
+Analysis and Design: 
+The system is designed using Object-Oriented principals, and prioritize the Strategy 
+Pattern which helps to swap AI models easily. 
+          Development and Implementation: 
+With the use of a microservices approach: Client (Next.js) <-> Server (FastAPI) <-> AI 
+Engine (Python/C++). 
+Testing: 
+Unit testing is done for API endpoints and Stress Testing is used for the GPU with 
+concurrent audio streams. 
+ 
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+4.4 High level Architecture / Design 
+  
+ 
+5 Project Planning  
+ 
+5.1 Gantt Chart 
+ 
+ 
+ 
+
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+6 Project Requirements  
+6.1 Software tools requirements: 
+Languages: TypeScript (Frontend), Python 3.10+ (Backend/AI).  
+Frameworks: Next.js 14, FastAPI, PyTorch. 
+AI Libraries: Transformers (Hugging Face), Faster-Whisper, vLLM or Llama.cpp. 
+Containerization: Docker Desktop. 
+ 
+6.2 Hardware requirements  
+GPU: NVIDIA RTX 3060 (12GB VRAM) or better.  
+RAM: 32GB DDR4/DDR5.  
+Storage: 512GB NVMe SSD (High speed I/O needed for model loading).  
+OS: Windows 10/11 (with WSL2) or Ubuntu Linux. 
+.. 
+7 Budget/Costing  
+7.1    Estimated Budgeted Cost of the Project  
+ 
+Total Hours of Development  is 400 hrs 
+ Estimated Hardware Cost (GPU Workstation - One Time) is 250,000 Rs 
+Peripheral Equipment (Headsets/Mics) is 15,000 Rs 
+Software Licenses (Mapbox/Bootstrap - mostly Open Source) is 0 Rs 
+Total Estimated Cost is 265,000 Rs (Hardware Asset)  
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+8 Project Deliverables (you may change according to your 
+project methodology) 
+ 
+8.1 Phase I - Alpha Prototype 
+Basic Dashboard Interface (Next.js).  
+WebSocket connection is maintained and established. 
+Dummy data flow verification is done. 
+8.2 Phase II - Beta Prototype 
+ Integration of Local Whisper (STT) and OpenSMILE.  
+ Live audio transcription pipeline is functioning. 
+ Basic Emotion Classification (Text-based). 
+ 
+8.3 Phase III - Release Candidate  
+Integration of Local LLM (Mistral/Phi-3) for Dispatch Advice is fone  
+Full "Midnight Command" UI visualization is done.  
+Fail-safe manual modes is active. 
+ 
+8.4 Phase IV - Final Product 
+             Deployment package is fully dockerized 
+ Comprehensive User Manual & Admin Guide. 
+  Optimized Low-Latency performance tuning (<2s).
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+9 Proposed GUI (Prototype)  
+ 
+ 
+ 
+ 
+
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+10 Meetings held with supervisor and/or client.  
+ 
+Meeting Date Key Discussion Points  Action Items  Deadline 
+1 1/7/2025  Project vision and objectives overview  Prepare initial project 
+concept  
+8/7/2025  
+2 8/7/2025  Securing co -supervisor approval, 
+alignment with expectations, project 
+scope confirmation  
+Finalize initial project 
+proposal draft  
+22/7/2025  
+3 22/7/2025  Tech stack discussion, documentation 
+requirements planning  
+Begin working on SDS and 
+SRS documents  
+6/8/2025  
+4 6/8/2025  SDS and SRS review, tech stack 
+finalization (FastAPI backend, Next.js 
+frontend), SQLite for call history 
+storage 
+Complete detailed class 
+diagram  
+20/8/2025  
+5 20/8/2025  AI models pipeline, UI requirements for 
+main dashboard  
+UI prototype development  4/9/2025  
+6 4/9/2025  Real-time calling integration issues, 
+frontend review, supervisor suggested 
+using local calling instead of real 
+landline 
+Integrate local calling 
+system  
+18/9/2025  
+7 18/9/2025  SQLite finalized for efficiency, UI 
+approved with suggestion to add total 
+calls page showing critical calls  
+Add total calls tracking 
+page 
+7/10/2025  
+8 7/10/2025  Dataset validation: 450 calls clean 
+dataset in JSON format  
+Prepare data for models 
+integration  
+28/10/2025  
+9 28/10/2025  Integration of Whisper, OpenSMILE , 
+and BERT models, backend connection 
+guidance  
+Integration of all AI models  14/11/2025  
+10 14/11/2025  Models integration review, discussion 
+on starting fine -tuning process  
+Begin fine-tuning of models  25/11/2025  
+11 25/11/2025  Latency issues with Whisper, garbage 
+values in input, LLM accuracy 
+concerns, high GPU requirements. 
+Supervisor suggested hybrid 
+architecture and considering alternatives 
+to Mistral LLM  
+Arrange high GPU or use 
+cloud services 
+7/1/2026  
+12 29/1/2026  Final review of all documents before 
+deadline, supervisor provided changes 
+for final submission, presentation tips 
+for February  
+Finalize all documents  30/1/2026  
+ 
+ 
+ 
+ 
+ 
+ 
+Emotion Aware Emergency Dsipatch System(EAEDS)    Version:           <1.0>  
+S31F25   Date:  4/1/2026  
+ 
+   
+ 
+ 
+ 
+11 References 
+ 
+1. Reddy, S., & Kompalli, S. (2022). Emotion Detection using Multimodal Analysis. 
+Journal of AI & Ethics. 
+2.  Rajput, D., & Singh, H. (2023). BERT for Emotion Classification. Procedia Computer 
+Science. 
+3.  Huang, J., et al. (2020). Whisper and ASR Systems. arXiv preprint. 
+4.  DHA Suffa University FYP Guidelines Documents.  
+ 
+
+
+--- EXTRACTING: S31F25-SDSFINALFYP.pdf ---
+
+   
+ 
+   
+ 
+DHA Suffa University 
+Final Year Project 
+ 
+Emotion Aware Emergency Dispatch System 
+(EAEDS) 
+S31F25 
+Software Design Specifications 
+Submitted By 
+Abdullah Shaikh(ds221042)  
+Syed Murtaza Hassan(ds221026) 
+Tahir Mehdi(ds221011) 
+Syed Muhammad Baqar(ds221043) 
+Supervisor 
+Ms. Shehla Andleeb  
+Co-Supervisor 
+Ms. Mashal Tariq 
+ 
+ 
+
+   
+ 
+   
+ 
+Document Sign off Sheet 
+Project Title 
+Emotion Aware Emergency 
+Dispatch System (EAEDS) 
+Project Code S31F25 
+Document Name Software Design Specifications 
+Document Version <1.0> 
+Document Identifier S31F25-SDS 
+Document Status Final 
+Author(s) Abdullah Shaikh,Murtaza Hassan,Tahir 
+Mehdi,Syed Muhammad Baqar 
+Approver(s) Miss Shehla Andleeb 
+Issue Date 27-10-2025 
+ 
+Name Role Signature Date 
+Abdullah Shaikh Team Lead 
+ 
+ 
+Syed Murtaza Hassan Team Member 2   
+Tahir Mehdi Team Member 3   
+Syed Muhammad Baqar Team Member 4   
+Ms. Shehla Andleeb Supervisor   
+Ms. Mashal Tariq Co-Supervisor   
+ Project Coordinator   
+ 
+Revision History 
+ 
+Date Version Description Author 
+15/1/2026 1.0 Initial document Abdullah Shaikh,Syed 
+Murtaza Hassan,Syed 
+Muhammad 
+Baqar,Tahir Mehdi 
+ 
+
+   
+ 
+   
+ 
+Definition of Terms, Acronyms, and Abbreviations 
+Terms Description 
+EAEDS Emotion Aware Emergency Dispatch System, which is a system designed to analyze 
+the emotions of callers and help dispatchers in their work.  
+LLM A model that is train on  alot of data like whole world data like chat gpt,gemini and 
+many more.  
+Whisper an open -source ASR model created by OpenAI that is used for converting speech 
+into text.  
+Latency  the time it takes for a system to respond to an action.  
+GPU Graphics Processing Unit, specialized hardware that speeds up AI calculations.  
+FastAPI Python framework used in our project backend for creating apis.  
+Next.js React framework used for frontend in our project.  
+SQLite Database for storing calls and other works  
+Dashboard  the main page where live call information, emotions, and location of caller is 
+displayed. In our project it is called midnight dashboard  
+JSON JavaScript Object Notation. A structured data format used to store transcripts and 
+emotion data.  
+UI/UX Design of how our dashboard looks  
+SQLite Database for storing calls and other works  
+Call Session A single emergency interaction that includes audio, transcript, emotion data, and 
+metadata such as time and location.  
+BERT Bidirectional Encoder Representations a model used for understanding natural 
+language and analyzing emotions.  
+Whisper an open -source ASR model created by OpenAI that is used for converting speech 
+into text.  
+Open Smile an open -source tool that extracts acoustic and emotional features from audio signals.  
+ 
+ 
+   
+ 
+   
+ 
+Table Of Content 
+Introduction...............................................................................................................................1 
+Purpose of Document .............................................................................................................1 
+Intended Audience ..................................................................................................................1 
+Document Convention ............................................................................................................1 
+Project Overview .....................................................................................................................1 
+Scope ........................................................................................................................................1 
+Design Considerations ...........................................................................................................1 
+Assumptions:............................................................................................................................1 
+Risks and Volatile Areas: .......................................................................................................1 
+System Architecture :..............................................................................................................1 
+Software Architecture : ...........................................................................................................1 
+Design Strategy: ......................................................................................................................1 
+Detailed System Design .........................................................................................................1 
+Design Class Diagram ........................................................................................................1 
+Er Diagram(Single-Entity Model) ......................................................................................1 
+Data Dictionary.....................................................................................................................1 
+GUI: ...........................................................................................................................................1 
+Mock Screen 1: ....................................................................................................................1 
+Mock Screen 2: ....................................................................................................................1 
+Mock Screen 3: ....................................................................................................................1 
+ 
+ 
+ 
+
+   
+ 
+   
+ 
+Introduction 
+Purpose of Document   
+This document perform its function as the blueprint for the design and for the application of 
+the Emotion Aware Emergency Dispatch System(EAEDS). It is basically designed for the 
+developing the team, project supervisors, and stakeholders and they all will be included in 
+reviewing, performing , and using the system. Object-Oriented Design (OOD) is employed as 
+the design methodology in this project and it matches with the structured and recyclable nature 
+of the software components. 
+Intended Audience 
+The intended audience for this document includes: 
+• Project Team: Programmers and verifiers are responsible for constructing and 
+checking the system. 
+• Supervisors: The project’s progress is supervised by the academic advisors. 
+Document Convention 
+● Font: TIMES NEW ROMAN  
+● Font Size: 12pt for body text, 14pt for headings  
+● Formatting: Consistent use of bullet points, numbered lists, and bold headings for 
+clarity. 
+Project Overview 
+The conventional 911 response system is usually improved bu the EAEDS which is commonly 
+also called as DispatchAI. It helps in handling the worldwide problem of call centers which is 
+understaffed by 82% by adding up an AI assistant which performs its work alongside human 
+programmers. The system can listen, understand, and think with the programmers . It works by 
+using tools like Whisper, OpenSMILE, BERT, and a fine -tuned language model to change 
+audio into applicable data, which includes transcripts, sentim ent analysis, and location 
+information. 
+ 
+ 
+   
+ 
+   
+ 
+ 
+Scope 
+What the System Will Do:  
+This project’s range includes the design and creation of functional prototype for an 
+Autonomous Dispatch Assistant. The main features of this include:   
+Real-time Speech-to-text: Instantly changes caller speech into text using Whisper model.   
+Emotion Detection: Inspecting vocal patterns with OpenSMILE to detect emotional states 
+such as panic, fear, or neutrality.   
+Smart Decision-Making: Using fine-tuned LLMs to follow standard 911 processes (Medical, 
+Fire, Police) and produce questions and suggestion according to current scenario of caller.   
+Operator Dashboard: A web-based interface (built with Next.js) that shows live transcripts, 
+detected emotions, and recommended actions for dispatchers and call history.  
+Local GPU  Architecture: A unified system where all AI processing and user interface 
+components run on the local system equipped with NVIDIA GPU hardware, eliminating cloud 
+dependencies and reducing latency..   
+ 
+What the System Will Not Do:  
+The following items are clearly removed from this phase of the project:   
+PSTN/Telephony Integration: Currently, the system uses calls using WebSockets and does 
+not connect to original landline or mobile networks.   
+Legal/Medical Liability: The system only provides recommendations and is not meant to 
+make final legal or medical decisions without a human checking them.   
+Physical Hardware Deployment: This project is software based only and does not cover 
+giving physical servers or specialized radio equipment.   
+Multi-Language Support: Our project only works with english language not with other 
+languages so it is not multi language project. 
+ 
+   
+ 
+   
+ 
+ 
+Design Considerations  
+Data Collection and Preparation:  
+High-fidelity real-time audio streams is controlled by the system. Audio is recorded through 
+WebSockets, and it was similar to 16kHz mono, and stored temporarily to make sure 
+alignment with Whisper (ASR) and OpenSMILE (Acoustic Emotion) models. Transcription 
+data is made safe and organised before it is analysed by the LLM for response generation. 
+ML Model Integrated Design:  
+The architecture combines many professional models: 
+Whisper: Provide accurate speech to text.  
+BERT + OpenSMILE: It is used for both meaning-based and sound -based emotion 
+classification. 
+Llama 3/Mistral: It is used for advanced and responsive generation.  
+The design focus on low lag and understandability , and present emotion measures and 
+provide suggestions to dispatchers in a Human in the loop format. 
+Reliability and Scalability:  
+The system uses a  
+UI/UX Strategy:  
+The Midnight Dashboard is formed for handling high-stress environments. It provieds a dark 
+mode tactical interface along with the real-time transcript scrolling and dynamic mapping 
+through`Leaflet.js`, and easy to use emotion alerts which decrease dispatcher cognitive load. 
+Maintenance and Evolution:  
+The modular design give permission for hot swapping models. The AI service interface make 
+sures that updating from BERT to RoBERTa or shifting LLMs needs less code changes.  
+ Assumptions:  
+Technical Dependencies: 
+• FastAPI: used for backend and apis.  
+• Next.js: used for main dashbaord devlopment mean frontend  
+• SQLite: Lightweight,efficient database used for call history 
+• Local GPU: On-premises GPU (minimum GTX 1660 or higher) for running AI 
+models 
+   
+ 
+   
+ 
+ 
+• Audio input is considered to be in English for the current model weights. 
+• The user contains a browser that is capable to support WebSockets and Leaflet 
+rendering. 
+ 
+Risks and Volatile Areas:  
+Latency Risks: 
+Processing large audio chunks on local GPU may cause latency if hardware is insufficient. 
+Contingency: Implementation of batch processing optimization, model quantization, and 
+hardware requirement validation to ensure response time under 2 seconds.  
+ Model Accuracy: It is the detection of emotions during high stress, noisy environments 
+might be sensitive . 
+• Contingency: Using a double engine approach like Acoustic along with Semantic for 
+verification of indicators. 
+ Scaling Volatility:  
+Handling multiple simultaneous high bitrate audio streams might strain local GPU VRAM 
+and system memory. Contingency: Implementation of queue-based processing and GPU 
+memory management with maximum concurrent call limits based on available VRAM. 
+• Contingency: Usage of local streaming and horizontal scaling of AI worker nodes.  
+ 
+ 
+ 
+System Architecture : 
+ 
+
+   
+ 
+   
+ 
+High-Level Decomposition:  
+The system is divided in three large subsystems: 
+Frontend Dashboard: It is the real time visualization and user interaction. 
+Backend Orchestrator: It is the routing , management of session and data persistence. 
+AI Engine: It is heavy audio working through computation and reasoning. 
+Physical Design: 
+Execution: The entire system including Frontend, Backend, and AI Engine runs on a single 
+local workstation (Windows/Linux) equipped with NVIDIA GPU . 
+GPU Layer: All AI models (Whisper, BERT, OpenSMILE, LLM) execute on the local 
+NVIDIA GPU (minimum 6GB VRAM recommended, 8GB+ for optimal performance) .  
+Error Handling: Disconnection are handled by complete try except blocks in the WebSocket 
+loop  and partial transcripts are saved by complete try except blocks in the WebSocket loop 
+which is done to prevent data loss.  
+Software Architecture :  
+The system comes after a simple Three-Tier Architecture: 
+User Interface Layer:It is mainly constructed with Next.js, providing the "Phone UI" for 
+callers and "Midnight Dashboard" for users. 
+Middle Tier (Business Logic): FastAPI works by controlling WebSocket bi-directional 
+streaming, orchestrating AI service calls, and controlling local business rules. 
+Data Access Layer: SQLite operations are abstracted by database manager class for 
+protecting and retrieving call logs. 
+GPU Resource Management Layer: PyTorch/CUDA interface manages model loading, 
+inference batching, and VRAM allocation on the local GPU to ensure optimal performance 
+across all AI components. 
+ 
+   
+ 
+   
+ 
+ 
+Design Strategy: 
+• Future Extension: It works by using an Abstract Base Class AIService which helps 
+to allow simple integration of new LLMs or ASR models. 
+• System Reuse: Components like ConnectionManager are constructed for any real-
+time broadcasting requirement . 
+• Data Management: It works by using JSON strings in SQLite to save complex 
+transcript structures. 
+• Concurrency: It uses Python's async/await and FastAPI's Websocket abilities to 
+control simultaneous connections without any delay. 
+ 
+ 
+Detailed System Design 
+Design Class Diagram 
+ 
+ 
+ 
+
+   
+ 
+   
+ 
+Er Diagram(Single-Entity Model)  
+ 
+ 
+The `CALL` entity stores all metadata for a single calling session. It includes time, location, 
+emotional state, and whole talking which is stored as json format.  
+ 
+
+   
+ 
+   
+ 
+Data Dictionary 
+< Data 1> 
+Name  Call_Record 
+Alias Emergency_Session, Call_Log 
+Where-used/how-used DatabaseManager, History Dashboard, AI Analytics`  
+Content description Composition of a single emergency interaction. 
+ 
+ 
+Column 
+Name 
+Description Type Length  Null 
+able  
+Default Value Key 
+Type 
+id Global Unique 
+ID 
+text 36 no UUIDv4 PK 
+started_at  Session Start 
+Time 
+datetime  - no CURRENT_TIMESTAMP  - 
+ended_at  Session end 
+time 
+datetime  - yes - - 
+caller_location  Address text 
+ 
+255 yes Unknown  - 
+detected_emoti on Final emotion 
+score 
+text 
+ 
+50 no neutral  - 
+transcript  full json call  text 
+ 
+- no [] - 
+duration  call length in 
+seconds  
+integer - no 0 - 
+GUI: 
+Mock Screen 1: 
+ 
+ 
+
+   
+ 
+   
+ 
+Mock Screen 2: 
+ 
+Mock Screen 3: 
+ 
+ 
+
+
+
+--- EXTRACTING: S31F25-SRSFYPFINAL.pdf ---
+
+   
+ 
+ 
+DHA Suffa University 
+Final Year Project 
+ 
+Emotion Aware Emergency Dispatch System 
+(EAEDS) 
+S31F25 
+Software Requirement Specifications  
+Submitted By 
+Abdullah Shaikh(ds221042)  
+Syed Murtaza Hassan(ds221026) 
+Tahir Mehdi(ds221011) 
+Syed Muhammad Baqar(ds221043) 
+Supervisor 
+Ms. Shehla Andleeb  
+Co-Supervisor 
+Ms. Mashal Tariq 
+ 
+ 
+ 
+ 
+
+   
+ 
+ 
+Document Sign off Sheet 
+Project Title 
+Emotion Aware Emergency 
+Dispatch System (EAEDS) 
+Project Code S31F25 
+Document Name Software Requirements Specifications 
+Document Version <1.0> 
+Document Identifier S31F25-SRS 
+Document Status Final 
+Author(s) Abdullah Shaikh,Syed Murtaza 
+Hassan,Tahir Mehdi,Syed Muhammad 
+Baqar 
+Approver(s) Miss Shehla Andleeb 
+Issue Date 27-10-2025 
+ 
+Name Role Signature Date 
+Abdullah Shaikh Team Lead 
+ 
+ 
+Syed Murtaza Hassan Team Member 2 
+ 
+ 
+Tahir Mehdi Team Member 3 
+ 
+ 
+Syed Muhammad Baqar Team Member 4 
+ 
+ 
+Ms. Shehla Andleeb Supervisor 
+ 
+ 
+Ms. Mashal Tariq Co-Supervisor 
+ 
+ 
+ Project Coordinator   
+ 
+Revision History 
+ 
+
+   
+ 
+ 
+Date Version Description Author 
+15/1/2026 1.0 Initial document Abdullah Shaikh,Syed 
+Murtaza Hassan,Tahir 
+Mehdi,Syed 
+Muhammad Baqar 
+    
+ 
+Definition of Terms, Acronyms, and Abbreviations: 
+Term Description 
+EAEDS Emotion Aware Emergency Dispatch System, which is a system designed to analyze 
+the emotions of callers and help dispatchers in their work.  
+LLM A model that is train on  alot of data like whole world data like chat gpt,gemini and 
+many more.  
+Whisper an open -source ASR model created by OpenAI that is used for converting speech into 
+text. 
+BERT Bidirectional Encoder Representations a model used for understanding natural 
+language and analyzing emotions.  
+Open Smile an open -source tool that extracts acoustic and emotional features from audio signals.  
+Mozilla TTS an open -source TTS engine that generates speech that sounds like a real person.  
+Dispatcher  a person who handle 911 or emergency calls.  
+Caller a person who calls for some sort of emergency.  
+Dashboard  the main page where live call information, emotions, and location  of caller is 
+displayed. In our project it is called midnight dashboard  
+Latency  the time it takes for a system to respond to an action.  
+API used for communication between different softwares or backend to frontend.  
+GPU Graphics Processing Unit, specialized hardware that speeds up AI calculations.  
+SQLite Database for storing calls and other works  
+Next.js React framework used for frontend in our project.  
+FastAPI Python framework used in our project backend for creating apis.  
+ 
+Table of content: 
+Revision History ................................................................................................................ 1 
+Introduction:............................................................................................................................... 1 
+Purpose of Document:................................................................................................................ 1 
+Intended Audience: .................................................................................................................... 1 
+Problem Statement: .................................................................................................................... 1 
+Overall System Description: ...................................................................................................... 1 
+Project Background: ............................................................................................................... 1 
+Problem Statement: ................................................................................................................ 1 
+
+   
+ 
+ 
+Project Scope:......................................................................................................................... 1 
+Not In Scope:.......................................................................................................................... 1 
+Project Objectives: ................................................................................................................. 1 
+Stakeholders & Affected Groups: .......................................................................................... 1 
+Operating Environment: ......................................................................................................... 1 
+System Constraints:................................................................................................................ 1 
+Assumptions & Dependencies: .............................................................................................. 1 
+External Interface Requirements:............................................................................................... 1 
+Hardware Interfaces: .............................................................................................................. 1 
+Software Interfaces:................................................................................................................ 1 
+Communications Interfaces: ............................................................................................... 1 
+System Functions / Functional Requirements: .......................................................................... 1 
+System Functions: .................................................................................................................. 1 
+System Functional Table:....................................................................................................... 1 
+System Attributes: .................................................................................................................. 1 
+Use Cases: .............................................................................................................................. 1 
+Use Case Daigram: ................................................................................................................. 1 
+References:................................................................................................................................. 1 
+Use Case #1:............................................................................................................................... 1 
+Use Case #2:............................................................................................................................... 1 
+Non-Functional Requirements: .................................................................................................. 1 
+Performance Requirements: ................................................................................................... 1 
+Safety Requirements: ............................................................................................................. 1 
+Security Requirements: .......................................................................................................... 1 
+Reliability Requirements:....................................................................................................... 1 
+Usability Requirements: ......................................................................................................... 1 
+Supportability Requirements:................................................................................................. 1 
+User Documentation:.............................................................................................................. 1 
+ 
+Introduction:  
+This document outlines the software requirements specification for Emotion Aware 
+Emergency Dispatch System (EAEDS), an AI -powered agent designed specifically for the 
+
+   
+ 
+ 
+(911 Emergency calls). The system aims to support dispatchers by taking the calls of people 
+get stuck in emergency and talk with them like real human and get analysis of their emotions 
+and show to live dashboard for dispatchers to take quick decisions for current emergency and 
+this system also keep logs of recent calls for future problems.The software will be developed 
+as a web-based platform and is intended to simplify the workflow of 911 dispatchers to take 
+quick decision based on real-time information. 
+Purpose of Document:  
+This document includes all  the software requirements for our project Emotion Aware 
+Emergency Dispatch System (EAEDS). It includes the functional and non-functional 
+requirements useful for developers, stakeholders, and quality assurance teams to understand 
+the system's architecture ,uses and all core and non-core functions. 
+Intended Audience:  
+The purpose of this project is to develop an AI -powered agent that will takes calls and also 
+talk like human and understand caller emotions and situation and response according to it and 
+gather useful information that will used by dispatchers to take decis ion and lot of time will be 
+saved because of this and lot of lives get saved during high natural emergency.  
+Problem Statement:  
+When some critical situation occurs in world like earthquake or any situation,lot of people 
+call to 911 which creates mess in call centers due to which some callers get no answers due to 
+less dispatchers therefore a lot of lives get wasted.  
+ 
+Overall System Description:  
+Project Background: 
+Emergency dispatch system are the first and the most essential line of defense in safety of 
+public. However the current setups are mostly old, depending on physical work and human 
+reasoning during hard times. The Emotion-Aware Emergency Dispatch System (EAEDS), 
+also called dispatch Al, was made to enhance this procedure. By using nowadays 
+advancements in Large Language Models (LLMs) and sound investigation the project aims to 
+develop a smart dispatch helper. This helper can listen, understand and think alon g with 
+human operators, changing raw audio into usable information. 
+ 
+   
+ 
+ 
+ 
+ 
+Problem Statement: 
+Global emergency services are facing a lot of staffing problems, with reports showing 82% 
+lack in 911 call centers. Human operators are burdened by high call sounds, which causes:  
+Increased Response Times: Postpones in managing information and sending units.  
+Human Error: High-stress environment tends to mismanagement or mental exhaustion.  
+Lack of context: Traditional systems depends on conversation with automatic devices to 
+check call emotion straightforwardly. There is a crucial need for networking layers which can 
+manage Early screening, record calls correctly and give decision support without changing 
+human element.  
+Project Scope:  
+This project’s range includes the design and creation of functional prototype for an 
+Autonomous Dispatch Assistant. The main features of this include:  
+Real-time Speech-to-text: Instantly changes caller speech into text using Whisper model.  
+Emotion Detection: Inspecting vocal patterns with OpenSMILE to detect emotional states 
+such as panic, fear, or neutrality.  
+Smart Decision-Making: Using fine-tuned LLMs to follow standard 911 processes 
+(Medical, Fire, Police) and produce questions and suggestion according to current scenario of 
+caller.  
+Operator Dashboard: It is a web based interface that is developed with Next.js and it 
+represents live transcripts, detected emotions, and recommended actions for operators and 
+call history. 
+Local GPU Architecture: A unified system where all AI processing and user interface 
+components run on the local workstation equipped with NVIDIA GPU, providing faster 
+response times and eliminating internet dependency for core operations.   
+Not In Scope:  
+The items which are clearly removed from this phase of the project are as follows: 
+PSTN/Telephony Integration:The system uses calls using WebSockets currently and is not 
+connected to original landline or mobile networks currently. 
+Legal/Medical Liability: The system only provides recommendations and is not meant to 
+make final legal or medical decisions without a human checking them.  
+Physical Hardware Deployment: This project is software based only and does not cover 
+giving physical servers or specialized radio equipment.  
+   
+ 
+ 
+Multi-Language Support: Our project only works with english language not with other 
+languages so it is not multi language project. 
+ 
+ 
+Project Objectives:  
+Reduce Triage Time: Computerize the collection of details (Name, Location, Type of 
+Emergency) to make dispatch faster.  
+Enhance Situational Awareness:Give operators live visual representers telling the caller’s 
+emotion and stress state.  
+Ensure Accessibility: AI assistance should be usable on standard local hardware equipped 
+with a compatible NVIDIA GPU.   
+Operational Resilience: Make the system so that the interface stays responsive even though 
+the AI experiences short postpones.  
+Stakeholders & Affected Groups :  
+Primary Users: 911 dispatchers and call takers who will work with the dashboard.  
+Secondary Users: First responders (Police, Fire, EMS) who receive the processed 
+knowledge.  
+Beneficiaries: People or callers who gain rapid and more correct emergency response and 
+fast service and risk of death will be less for people suffering from any critical emergency.  
+Administrators: Personnel responsible for managing the system, fine-tuning the AI model, 
+and managing the servers.  
+Operating Environment: 
+he system operates on a single local workstation with the following requirements: 
+Hardware Requirements: 
+• Operating System: Windows 10/11 or Linux (Ubuntu 20.04+) 
+• GPU: NVIDIA GPU with minimum 6GB VRAM (GTX 1660 or higher 
+recommended; RTX 3060/4060 or higher for optimal performance) 
+• CPU: Modern multi-core processor (Intel i5/AMD Ryzen 5 or higher) 
+• RAM: Minimum 16GB system RAM (32GB recommended) 
+• Storage: 50GB available SSD space for models and data  
+• CUDA Toolkit: Version 11.8 or higher 
+ 
+   
+ 
+ 
+System Constraints:  
+Latency: Latency: Local GPU processing eliminates network delays but requires sufficient 
+VRAM and processing power. Response time depends on GPU capability - minimum RTX 
+3060 recommended for sub-2-second latency 
+GPU Dependency: GPU Dependency: The system requires a dedicated NVIDIA GPU with 
+CUDA support. Integrated graphics or non-NVIDIA GPUs are not supported. Minimum 6GB 
+VRAM required for basic operation 
+Context Window: The language model has a range of memory for conversation so very long 
+calls may lose early information until summarization is used.  
+Assumptions & Dependencies:  
+Dependencies: Dependencies: The system depends on external libraries (HuggingFace, 
+PyTorch, Next.js, CUDA Toolkit) and services (Leaflet.js for maps). All AI processing 
+dependencies are installed locally.  
+Assumption 1: Users will have a microphone available for simulating voice input.  
+Assumption 2: The local system has sufficient GPU resources (6GB+ VRAM) available for 
+AI model inference. 
+Assumption 3: The internet connection that is provided will have enough speed of upload to 
+transfer voice in real life time.  
+ 
+External Interface Requirements:  
+Hardware Interfaces:  
+Local Workstation: A GPU accelerated server (NVIDIA CUDA -compatible) is needed for 
+low- latency inference of whisper and BERT models.  
+Client Workstation: Standard PC/Laptop with audio input/output capabilities for the 
+dispatcher dashboard with good internet network.  
+Software Interfaces:  
+Backend: Fast API (python) serves as the important and core API and WebSocket handler.  
+Frontend Framework: Next.js (React) for the interactive Dispatcher UI.  
+Database: SQL Lite for efficient, lightweight storage of call logs, user profiles and 
+transcripts.  
+Leaflet.js: For caller locations and display the tactical map view.  
+Open Smile and BERT: For Extracting semantic and acoustic features from audio calls.  
+   
+ 
+ 
+Whisper: For converting our audio calls into text.  
+Mozilla TTS: used as a voice agent for communication with callers.  
+LLM or Ai Agent: Backbone of our project used as a brain to talk or give suggestions to our 
+dialers or basically a replacement of dispatchers when they are busy.  
+ 
+Communications Interfaces:  
+This part explains how the different parts of the system share information with each other.  
+Communication Protocol (Client-Server): This is the main way for real-time data exchange 
+between the Frontend and Backend.It handles live audio events, updated transcripts, and 
+emotion data.  
+HTTP/REST (JSON): It is used for assignment that don't need to happen without the delay 
+e.g. getting past call records (GET /calls), and checking if the system is performing it’s 
+function accurately(GET /), and saving the session information.    
+Data Exchange Format:JSON Objects: Includes all the data that is sent around like 
+transcripts, emotion scores, and command triggers and it is arranged by using standard JSON 
+format. 
+Internal/External API Calls: The Python backend communicate with the AI models by 
+using async function calls if the models are present on the same machine. 
+Local Processing Pipeline: All AI components communicate via in-process Python function 
+calls and shared memory, eliminating network overhead and ensuring sub-second response 
+times  
+System Functions / Functional Requirements :  
+System Functions:  
+Speech Text Conversion: The system will convert incoming audio calls to text using 
+whisper with latency of less than 2 seconds.  
+Dual Emotional Analysis: The system shall compute a weighted emotional score by 
+combining Acoustic features with open smile and semantic features using BERT. 
+Automate Prioritization: The system will label calls as critical, high or low based on 
+emotional intensity detected by our models better decision making by dispatchers. 
+Midnight Command Dashboard: The system will update the main page in real-time, 
+displaying active calls and their transcript also and dynamic map markers without page 
+reload.  
+Call Hand overing: The dispatcher can take over calls if condition is going critical. 
+   
+ 
+ 
+ 
+ 
+System Functional Table: 
+ The system functions for the Emotion-Aware Emergency Dispatch System are listed below, 
+categorized by their priority and visibility to the end -user (Dispatcher). 
+ 
+Ref#  Functions  Category  Attribute Details & Boundary Constraints  
+R1.1 Real-time Call 
+Transcription(not on 
+landline numbers)  
+Evident Latency  Transcript appears < 2 seconds 
+after speech via speech to text 
+using whisper 
+R1.2 Emotion Classification 
+Visualization  
+Evident Accuracy / 
+Refresh 
+ 
+Updates emotion gauge every 3 -5 
+seconds based on audio 
+accumulation  
+R1.3 Generate AI Response 
+Suggestions 
+Evident Relevance  Talk with caller via mozilla tts and 
+generate responses according to its 
+fine tuning 
+R1.4 Display Caller Geolocation  Evident Precision Display caller location for 
+dispatchers via leaflet.  
+R1.5 Archive Call Logs & 
+Transcripts 
+Hidden  Persistence Automatically saves conversation 
+history to SQLite upon 
+disconnection for dispatcher 
+records. 
+R1.6 Maintain WebSocket 
+Connection  
+Hidden  Reliability Handshake and heartbeat 
+maintenance for bi -directional 
+audio streaming  
+R1.7 Extract Acoustic Features  Hidden  Explainability  Runs OpenSMILE extraction on 
+audio buffer chunks (background 
+process) to analyze caller 
+emotional feelings.  
+ Call Swicthing to 
+dispatcher(If emergency is 
+so critical) 
+Evident Performance  If dispatcher wants to take call he 
+can switch it. 
+ 
+System Attributes: 
+Attribute Details and Boundary Constraints  Category  
+Response Time  The time between when a caller finishes speaking 
+and the text shows up on the dashboard needs to be 
+short -under 2 seconds - so the dispatcher can read 
+along in real -time. 
+Mandatory  
+Data Privacy  All audio processing and transcription must happen 
+locally.No audio data should be sent to public third -
+party APIs (Privacy - first design). 
+Mandatory  
+Interface Metaphor  The dashboard must use a dark mode or high -
+contrast tactical interface that works well in low -
+light dispatch centers, helping reduce eye strain for 
+24/7 operations.  
+Optional(Depends on person 
+to person)  
+Concurrent User Load  The system must handle at least 5 simultaneous 
+mock calls during without the backend crashing.  
+Optional(For Demo in front 
+of jury)  
+ 
+   
+ 
+ 
+Use Cases: 
+Use Case  Title Description 
+UC-01: Monitor Live Call  The dispatcher can see the live text of the conversation, the 
+emotional state of the caller, and their location during an ongoing 
+emergency call.  
+UC-02: Review Call History  The dispatcher can check the database to read previous call 
+records and listen to the details of past emergency calls again.  
+ 
+Use Case Daigram: 
+ 
+References:  
+Reddy, S., & Kompalli, S. (2022). Emotion Detection using Multimodal Analysis. Journal of 
+AI & Ethics.  
+Rajput, D., & Singh, H. (2023). BERT for Emotion Classification. Procedia Computer 
+Science.  
+Huang, J., et al. (2020). Whisper and ASR Systems. arXiv preprint.  
+Open SMILE documentation. AudEERING GmbH (2020).  
+ 
+
+   
+ 
+ 
+Use Case #1: 
+Section: Main  
+Name:  Monitor Live Call (UC -01) 
+Actors: Dispatcher, AI Agent  
+Purpose: To give the dispatcher better awareness during an emergency and also caller 
+dont have to wait if all dispatcers are busy.  
+Description: When a call comes, system will detect it and talk with user and display all live 
+transcript on main dashbaord and also label user emotions for dispacther and 
+also show live location on map.  
+Cross References:  Functions: R1.1, R1.2 and R1.4  
+Pre-Conditions The Backend and all ai models need to be active and connected also.  
+Successful Post -
+Conditions 
+The call ends, and all the conversation details are stored in the database.  
+Failure Post-
+Conditions 
+The transcription stops, and the system shows an error message that says 
+"Connection Lost"  
+  
+Typical Course of Events  
+Actor Action System Response 
+1 The use case starts when the caller connects 
+and the caller speaks (e.g., Help, there's a 
+fire) 
+2 the AI Agent listens to the audio, converts it to 
+text, and sends it out. and the AI Agent analyzes 
+the sound and changes the "Emotion Gauge" to 
+"High Urgency". 
+3 The dispatcher reads the text and checks the 
+map.  
+4 The system keeps updating the screen as more 
+audio comes in.. and Ai agent replying the user 
+via mozilla voice agent also  
+5 The dispatcher takes action until the call 
+ends. 
+6 The system saves the full conversation to 
+SQLite (Function R1.5).  
+Alternative Course   
+Step 4: If the transcription is delayed, the system will show a message  for dispatcher 
+so that he knows there is some sort of delay.  
+Step 5: If no voice is heard for more than 10 seconds, the AI Agent changes the 
+emotion status to "Neutral/Waiting"  
+ 
+ 
+   
+ 
+ 
+Use Case #2: 
+Section: Main  
+Name:  Review Call History (UC -02) 
+Actors: Dispatcher  
+Purpose: To let the dispatcher look back at previous calls for reports or checks.  
+Description: The dispatcher goes to the History tab, picks a call from the list, and sees 
+the whole conversation, along with the final emotion result and where the 
+call was made.  
+Cross References:  Function: R1.5  
+Pre-Conditions There needs to be at least one call that has been finished and saved in the 
+database.  
+Successful Post -
+Conditions 
+The details of the selected call appear on the screen.  
+Failure Post-Conditions If the database isn’t connected, the dispatcher will get no call history  
+  
+Typical Course of Events  
+Actor Action System Response 
+1 Dispatcher clicks the "Call History" button.  2 System checks the SQLite database for the last 
+50 records and then shows a list of calls with 
+dates and phone numbers.  
+3 Dispatcher chooses a specific call.  4 System gets the full JSON conversation for that 
+call and then show with labels like caller chat 
+and agent chat  
+5 Dispatcher reads the chat and exits the 
+view. 
+  
+Alternative Course   
+Step 2(Empty Databse):  If there are no calls, the system shows a message that says "No prior 
+calls found".  
+ 
+ 
+   
+ 
+ 
+ 
+ 
+Non-Functional Requirements: 
+Performance Requirements: 
+Speech Transcription Latency: The system must transcribe audio as soon as it is received, 
+and it needs to do this within 2 seconds to keep up with the event as it happens.  
+Emotion Inference Speed: BERT and Open Smile will identify emotions from the audio and 
+send the results to the dashboard within 3 seconds of receiving the audio.This allows 
+dispatchers to assess the caller's distress level in real time. 
+Safety Requirements: 
+Fail Safe Mechanism: The dispatcher will handle the call without any service interruption, if 
+the system breaks down or there is any delay or problem in the AI pipeline. The system will 
+be changed to Manual Dispatch Mode, when the AI services are not available. 
+Right Location Verification: Every reverse geocoded address must be tested against a 
+trusted mapping service like the Map Box. This will make sure that first responders are 
+scheduled to the real and original location with an accurate measurement of or within 50 
+meters of the recorded location. 
+Security Requirements: 
+Encryption At Rest: The database must be protected using strong encryption, such as AES-
+256, to keep caller information private.Important call recordings and transcripts should be 
+stored in an encrypted database.  
+Authentication: "Midnight Command" dashboard is protected by a JSON Web Token 
+(JWT).Session tokens will be expired after 12hours of usage.. 
+VoIP Security: To prevent unauthorized access to emergency conversations, SIP signaling 
+and RTP media streams will be secured using TLS and SRTP, respectively. 
+Reliability Requirements: 
+System Availability: The main models and telephone parts need to be available 99% of the 
+time to ensure the line is ready for emergency calls. 
+Automatic Recovery: A process control system (Docker) should manage the Fats API 
+backend (Docker) which can restart its  working procedures in 5 seconds if they are not 
+working or they stop operating . 
+   
+ 
+ 
+Usability Requirements: 
+UI Design: The “Midnight Command” dashboard must have a dark mode color scheme that 
+is present with clear alert presenters which will  help to reduce eye strain during long and late 
+night shifts. 
+Single Critical Page: The interface should must represent the live location on a map, along 
+with a live transcript and emotion graphs. They all should be on one screen so operators can 
+easily have access to significant situation details and can decide accurately and can make 
+better decisions. 
+Supportability Requirements: 
+Modular Architecture: A loosely connected Microservice architecture (FastAPI) should be 
+used to built the system so that individual AI models, like switching from BERT to Roberta, 
+can be improved or changed without the need of reconstruction of the whole system or can 
+cause any issue or downtime. 
+Deployment Consistency: Our project have to deploy and use docker containers to make 
+sure that development,testing and production environment are same and has no overlapping 
+or conflicts. 
+User Documentation: 
+The following documentation must be included with each system release: 
+Dispatcher User Manual: A guide that explains all the features used in main midnight 
+dashboard and explain overall features of our project. 
+System Administration Guide: Technical instructions for handling database backups and 
+deploying the Docker containers. 
+

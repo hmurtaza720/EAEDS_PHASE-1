@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { MESSAGES } from "@/data/mock_data";
 import { Call } from "@/data/types";
 import Sidebar from "@/components/live/Sidebar";
-import { MoreHorizontal, MessageSquare, Monitor, X, Phone, User, Bot, Clock } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Monitor, X, Phone, User, Bot, Clock, Siren, FireExtinguisher, Ambulance, AlertTriangle, CheckCircle2, AlertCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
+import { US_STATES, CITY_COORDS } from "@/data/constants";
 
 // Dynamic import for Map to avoid SSR issues
 const Map = dynamic(() => import("@/components/live/map/Map"), {
@@ -16,13 +16,48 @@ const Map = dynamic(() => import("@/components/live/map/Map"), {
 });
 
 const TrafficPage = () => {
-    const calls = Object.values(MESSAGES);
-    // Default to the first call to "lock" the view open
-    const [selectedCallId, setSelectedCallId] = useState<string | null>(calls.length > 0 ? calls[0].id : null);
+    const [calls, setCalls] = useState<Call[]>([]);
+    const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
 
-    const selectedCall = selectedCallId ? MESSAGES[selectedCallId] : null;
+    useEffect(() => {
+        // Fetch calls from backend API (traffic endpoint: active + recently disconnected only)
+        const fetchCalls = async () => {
+            try {
+                const res = await fetch("http://127.0.0.1:8000/calls/traffic");
+                if (res.ok) {
+                    const rawData = await res.json();
+                    // Geocode coords from city_state if not already present
+                    const enriched = rawData.map((call: any) => {
+                        if (!call.location_coords && call.city_state && call.city_state !== "Unknown") {
+                            const parts = call.city_state.split(",").map((s: string) => s.trim());
+                            const cityName = parts[0];
+                            const stateCode = parts.length > 1 ? parts[1] : null;
+                            if (CITY_COORDS[cityName]) {
+                                call.location_coords = CITY_COORDS[cityName];
+                            } else if (stateCode) {
+                                const stateObj = US_STATES.find(s => s.code === stateCode);
+                                if (stateObj?.coords) call.location_coords = stateObj.coords;
+                            }
+                        }
+                        return call;
+                    });
+                    setCalls(enriched);
+                    if (enriched.length > 0 && !selectedCallId) setSelectedCallId(enriched[0].id);
+                }
+            } catch (e) {
+                console.error("Failed to fetch calls:", e);
+            }
+        };
+        fetchCalls();
 
-    // Helper to format time (mocking timezone for now)
+        // Auto-refresh every 10 seconds for live feel
+        const interval = setInterval(fetchCalls, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const selectedCall = selectedCallId ? calls.find(c => c.id === selectedCallId) : null;
+
+    // Helper to format time
     const formatTime = (isoString: string) => {
         try {
             const date = new Date(isoString);
@@ -30,13 +65,18 @@ const TrafficPage = () => {
                 hour: "numeric",
                 minute: "2-digit",
                 hour12: true,
-                timeZone: "America/Los_Angeles", // Mock PST/PDT as requested
+                timeZone: "America/Los_Angeles",
                 timeZoneName: "short"
             });
         } catch (e) {
             return "Unknown";
         }
     };
+
+    // Severity counts
+    const criticalCount = calls.filter(c => c.severity === "CRITICAL").length;
+    const unresolvedCount = calls.filter(c => c.severity === "UNRESOLVED").length;
+    const resolvedCount = calls.filter(c => c.severity === "RESOLVED").length;
 
     return (
         <div className="flex h-full flex-col space-y-1 text-slate-200 selection:bg-blue-500/30">
@@ -45,6 +85,24 @@ const TrafficPage = () => {
                 <header className="flex h-16 items-center px-6 backdrop-blur">
                     <h1 className="text-xl font-bold uppercase tracking-wider text-blue-400">Traffic Control</h1>
                     <div className="ml-auto flex items-center space-x-4">
+                        {/* Severity Counters */}
+                        <div className="flex items-center gap-3 mr-4">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20">
+                                <AlertTriangle size={12} className="text-red-400" />
+                                <span className="text-xs font-bold text-red-400">{criticalCount}</span>
+                                <span className="text-[9px] uppercase tracking-wider text-red-400/70 font-semibold">Critical</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-500/10 border border-orange-500/20">
+                                <AlertCircle size={12} className="text-orange-400" />
+                                <span className="text-xs font-bold text-orange-400">{unresolvedCount}</span>
+                                <span className="text-[9px] uppercase tracking-wider text-orange-400/70 font-semibold">Unresolved</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 border border-green-500/20">
+                                <CheckCircle2 size={12} className="text-green-400" />
+                                <span className="text-xs font-bold text-green-400">{resolvedCount}</span>
+                                <span className="text-[9px] uppercase tracking-wider text-green-400/70 font-semibold">Resolved</span>
+                            </div>
+                        </div>
                         <div className="flex items-center space-x-2 text-xs font-mono text-slate-500">
                             <span>LIVE FEED</span>
                             <div className="h-4 w-4 rounded-full bg-green-500/20 p-1">
@@ -64,8 +122,9 @@ const TrafficPage = () => {
                             <tr>
                                 <th className="px-6 py-4">Caller Name</th>
                                 <th className="px-6 py-4">Location</th>
+                                <th className="px-6 py-4">Severity</th>
                                 <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Chatting With</th>
+                                <th className="px-6 py-4">On Call With</th>
                                 <th className="px-6 py-4">Time Initiated</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -79,32 +138,59 @@ const TrafficPage = () => {
                                         "group cursor-pointer transition-all duration-200 hover:bg-slate-800 border-l-4",
                                         selectedCallId === call.id
                                             ? "bg-slate-800/80 border-l-blue-500 shadow-[inset_0_0_20px_rgba(59,130,246,0.05)]"
-                                            : call.status === "Connected" ? "border-l-green-500 hover:border-l-green-400" : "border-l-slate-700 hover:border-l-slate-600"
+                                            : call.severity === "CRITICAL"
+                                                ? "border-l-red-500 hover:border-l-red-400"
+                                                : call.severity === "UNRESOLVED"
+                                                    ? "border-l-orange-500 hover:border-l-orange-400"
+                                                    : call.status === "Connected"
+                                                        ? "border-l-green-500 hover:border-l-green-400"
+                                                        : "border-l-slate-700 hover:border-l-slate-600"
                                     )}
                                 >
-                                    {/* Name */}
+                                    {/* Name & Phone */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">
                                             <div className={cn(
                                                 "flex h-8 w-8 items-center justify-center rounded-lg font-bold text-xs transition-colors",
                                                 selectedCallId === call.id ? "bg-blue-500 text-white" : "bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-slate-200"
                                             )}>
-                                                {call.name.charAt(0)}
+                                                {call.name ? call.name.charAt(0) : "?"}
                                             </div>
-                                            <span className={cn(
-                                                "font-bold uppercase tracking-wide text-xs",
-                                                selectedCallId === call.id ? "text-blue-400" : "text-slate-300 group-hover:text-white"
-                                            )}>
-                                                {call.name}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className={cn(
+                                                    "font-bold uppercase tracking-wide text-xs",
+                                                    selectedCallId === call.id ? "text-blue-400" : "text-slate-300 group-hover:text-white"
+                                                )}>
+                                                    {call.name || "Unknown Caller"}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                                    {call.phone || "Unknown Number"}
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
 
                                     {/* Location */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-2 text-slate-300">
-                                            <span className="text-xs font-bold uppercase tracking-wide">{call.location_name}</span>
+                                            <span className="text-xs font-bold uppercase tracking-wide">
+                                                {call.city_state && call.city_state !== "Unknown" ? call.city_state : call.location_name}
+                                            </span>
                                         </div>
+                                    </td>
+
+                                    {/* Severity */}
+                                    <td className="px-6 py-4">
+                                        <span className={cn(
+                                            "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border",
+                                            call.severity === "CRITICAL"
+                                                ? "bg-red-500/10 text-red-400 border-red-500/20"
+                                                : call.severity === "UNRESOLVED"
+                                                    ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                                                    : "bg-green-500/10 text-green-400 border-green-500/20"
+                                        )}>
+                                            {call.severity || "UNKNOWN"}
+                                        </span>
                                     </td>
 
                                     {/* Status */}
@@ -123,7 +209,7 @@ const TrafficPage = () => {
                                         </div>
                                     </td>
 
-                                    {/* Chatting With */}
+                                    {/* On Call With */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-2 text-slate-400 group-hover:text-slate-300 transition-colors">
                                             {call.responder_type === "AI" ? (
@@ -131,7 +217,9 @@ const TrafficPage = () => {
                                             ) : (
                                                 <User size={14} className="text-orange-400" />
                                             )}
-                                            <span className="text-xs font-medium">{call.agent_name || "Unknown"}</span>
+                                            <span className="text-xs font-medium">
+                                                {call.responder_type === "AI" ? "AI Dispatcher" : (call.agent_name || "Human Agent")}
+                                            </span>
                                         </div>
                                     </td>
 
@@ -169,7 +257,6 @@ const TrafficPage = () => {
                 {/* Details Sidebar (Right) */}
                 {selectedCall && (
                     <div className="w-80 flex flex-col rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl backdrop-blur-md animate-in slide-in-from-right-10 duration-200 relative">
-                        {/* Locked view: Close button removed */}
 
                         <h2 className="text-lg font-bold text-white mb-1">Call Details</h2>
                         <p className="text-sm text-slate-400 mb-6 font-mono">ID: #{selectedCall.id}</p>
@@ -186,8 +273,15 @@ const TrafficPage = () => {
                                     }]}
                                 />
                             ) : (
-                                <div className="flex h-full items-center justify-center text-slate-600 text-xs italic">
-                                    Location Unknown
+                                <div className="flex h-full flex-col items-center justify-center text-slate-500 text-xs italic space-y-1">
+                                    <span>📍</span>
+                                    <span className="font-bold text-slate-400 not-italic uppercase text-[10px] tracking-wider">
+                                        {selectedCall.city_state && selectedCall.city_state !== "Unknown"
+                                            ? selectedCall.city_state
+                                            : selectedCall.location_name && selectedCall.location_name !== "Unknown"
+                                                ? selectedCall.location_name
+                                                : "Location Pending..."}
+                                    </span>
                                 </div>
                             )}
                         </div>
@@ -209,22 +303,45 @@ const TrafficPage = () => {
                                     <span>{selectedCall.phone}</span>
                                 </div>
                             </div>
-                            <div>
-                                <h3 className="text-xs font-bold uppercase text-slate-500 mb-1">Summary</h3>
-                                <p className="text-xs leading-relaxed text-slate-400 bg-slate-950/50 p-3 rounded-lg border border-slate-800">
-                                    {selectedCall.summary}
-                                </p>
-                            </div>
-                        </div>
 
-                        <div className="mt-auto pt-6">
-                            <Link
-                                href={`/live?callId=${selectedCall.id}`}
-                                className="flex w-full items-center justify-center rounded-lg bg-blue-600 py-3 text-sm font-bold text-white transition-all hover:bg-blue-500 shadow-lg hover:shadow-blue-500/25 active:scale-[0.98]"
-                            >
-                                <Monitor size={16} className="mr-2" />
-                                Take Over Supervision
-                            </Link>
+                            {/* Dispatched Services Section (replaces Summary) */}
+                            <div>
+                                <h3 className="text-xs font-bold uppercase text-slate-500 mb-2">Dispatched Services</h3>
+                                {(() => {
+                                    const dispatched: string[] = (selectedCall as any)?.dispatched_services || [];
+                                    return (
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className={cn(
+                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                dispatched.includes("Police")
+                                                    ? "border-blue-500/40 bg-blue-950/30 text-blue-400"
+                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                            )}>
+                                                <Siren size={12} />
+                                                {dispatched.includes("Police") ? "✓ Police" : "Police"}
+                                            </div>
+                                            <div className={cn(
+                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                dispatched.includes("Fire")
+                                                    ? "border-red-500/40 bg-red-950/30 text-red-400"
+                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                            )}>
+                                                <FireExtinguisher size={12} />
+                                                {dispatched.includes("Fire") ? "✓ Fire" : "Fire"}
+                                            </div>
+                                            <div className={cn(
+                                                "flex items-center justify-center gap-1.5 h-9 px-2 rounded-md border text-[10px] font-medium",
+                                                dispatched.includes("EMS")
+                                                    ? "border-green-500/40 bg-green-950/30 text-green-400"
+                                                    : "border-slate-700/50 bg-slate-800/30 text-slate-600"
+                                            )}>
+                                                <Ambulance size={12} />
+                                                {dispatched.includes("EMS") ? "✓ EMS" : "EMS"}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
                         </div>
                     </div>
                 )}

@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^3.3.4",
     "@maptiler/leaflet-maptilersdk": "^2.0.0",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-scroll-area": "^1.1.0",
     "@radix-ui/react-select": "^2.1.1",

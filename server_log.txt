@@ -1,0 +1,1344 @@
+INFO:     Will watch for changes in these directories: ['/Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [25778] using WatchFiles
+INFO:     Started server process [25781]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 56946) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:56986 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Help! (Panicked)
+INFO:     127.0.0.1:56988 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: There fire in my ketchen. What should  do? (Panicked)
+INFO:     127.0.0.1:57005 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: My address is 4677 W 84th Pl, Chicago, IL 60652. I'm little injured. (Panicked)
+INFO:     127.0.0.1:57101 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: It started from the oven and hurt me. And spreding in my curtains now. (Panicked)
+INFO:     127.0.0.1:57111 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: I can exit but I'm injured and burnt a little bit so can't. I'm afraid. (Panicked)
+INFO:     127.0.0.1:57124 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: I'm very afraid. When are they coming. (Panicked)
+INFO:     127.0.0.1:57139 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Alright, I can hear them now. They are coming inside. (Panicked)
+INFO:     127.0.0.1:57148 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:57156 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: there is a fire at 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:57254 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: there is a fire at 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:57266 - "POST /api/test-chat HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25781]
+INFO:     Started server process [25922]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57274) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ 📤 [Proxy] Sending to Colab: 5 people injured 1 died (Panicked)
+INFO:     127.0.0.1:57277 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: no they are not please send help asap (Panicked)
+INFO:     127.0.0.1:57285 - "POST /api/test-chat HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25922]
+INFO:     Started server process [25929]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57299) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ 📤 [Proxy] Sending to Colab: yes i am safe but 1 more died just now send them fasttt (Panicked)
+INFO:     127.0.0.1:57301 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: ok yes they arrived but they are not helping us whyyy? (Panicked)
+INFO:     127.0.0.1:57308 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: they are laughing on the guys who died and not helping rest 3 who are about to die what the hell they are doing (Panicked)
+INFO:     127.0.0.1:57323 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes now they are helping (Panicked)
+INFO:     127.0.0.1:57343 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes they are going in abulance (Panicked)
+INFO:     127.0.0.1:57350 - "POST /api/test-chat HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25929]
+INFO:     Started server process [25951]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57361) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ 📤 [Proxy] Sending to Colab: is thank god (Panicked)
+INFO:     127.0.0.1:57364 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes god saved us right? (Panicked)
+INFO:     127.0.0.1:57372 - "POST /api/test-chat HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25951]
+INFO:     Started server process [25968]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57379) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ 📤 [Proxy] Sending to Colab: yes i will pray namaz now (Panicked)
+INFO:     127.0.0.1:57385 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes do you beilive in Allah? (Panicked)
+INFO:     127.0.0.1:57391 - "POST /api/test-chat HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25968]
+INFO:     Started server process [25979]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57408) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ 📤 [Proxy] Sending to Colab: yes but islam is best (Panicked)
+INFO:     127.0.0.1:57406 - "POST /api/test-chat HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25979]
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Started server process [25988]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57424) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57437) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57439) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57443) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57444) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57445) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25988]
+INFO:     Started server process [26013]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57451) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57452) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57453) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57454) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:57459 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57459 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 57461) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57463) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57464) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:57466 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57466 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 57467) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57468) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57469) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57476) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57478) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57479) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57481) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:57483 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57483 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 57485) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57486) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57487) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:57489 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57489 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 57491) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57492) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57493) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26013]
+INFO:     Started server process [26055]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 57517) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57518) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57519) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57520) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57521) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57522) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57523) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57524) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:57677 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help there is fire help meee my oven picked fire (Panicked)
+INFO:     127.0.0.1:57688 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57740 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help firre in my home at 311 W Illinois St, Chicago, IL 60654 (Panicked)
+INFO:     127.0.0.1:57741 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes my 2 sons and me are in a fire room our oven picked fire (Panicked)
+INFO:     127.0.0.1:57767 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: no there is no window we cant brethe helppp sufffocaationn (Panicked)
+INFO:     127.0.0.1:57777 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes sayyy=[ (Panicked)
+INFO:     127.0.0.1:57782 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes but the door is also in fire (Panicked)
+INFO:     127.0.0.1:57791 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: leaveeee thisss sneddd helpppp (Panicked)
+INFO:     127.0.0.1:57798 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57806 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppp there are theives in my house (Panicked)
+INFO:     127.0.0.1:57817 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes inside rthe house i am under the beddd my house address is 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:57825 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57857) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57858) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 57859) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57863) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:57932 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57932 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppp there is fire in my houseee my fan picked firee (Panicked)
+INFO:     127.0.0.1:57934 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🗑️ [Proxy] Clearing Active Simulation for 555-2181
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:57946 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helpp fire in my fan (Panicked)
+INFO:     127.0.0.1:57952 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:57952 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: small but my son is heavly injured send helpppp asappp (Panicked)
+INFO:     127.0.0.1:57970 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppp there are theives in my houseee (Panicked)
+INFO:     127.0.0.1:57986 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 311 W Illinois St, Chicago, IL 60654 (Panicked)
+INFO:     127.0.0.1:57992 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yesss i am under bed and they are stealing my goldddd (Panicked)
+INFO:     127.0.0.1:57998 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes armed 10 thives all armed please send helpppppp (Panicked)
+INFO:     127.0.0.1:58008 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🗑️ [Proxy] Clearing Active Simulation for 555-3020
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:58016 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58030) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58032) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58034) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: end call help is here i am dsafe (Panicked)
+INFO:     127.0.0.1:58037 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🗑️ [Proxy] Clearing Active Simulation for 555-3395
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:58046 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppp there is firee in my housee my oven picked fireeeee (Panicked)
+INFO:     127.0.0.1:58055 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: hellooo.  helppp there is firee in my housee my oven picked fireeeee (Panicked)
+ ❌ [Proxy] Error: Server disconnected without sending a response.
+INFO:     127.0.0.1:58066 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppp there is firee in my housee my oven picked fireeeee (Panicked)
+INFO:     127.0.0.1:58072 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58089) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58091) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58094) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58100) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58101) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58102) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58103) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58105) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:58109 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58109 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58109 - "GET /chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58130) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58132) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58134) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: helpp there is fire in my housee in my TV (Panicked)
+INFO:     127.0.0.1:58142 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 311 W Illinois St, Chicago, IL 60654.  my son is injured (Panicked)
+INFO:     127.0.0.1:58148 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes he is bleeding send help asapp (Panicked)
+INFO:     127.0.0.1:58158 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppp there are thives in my house i am under the bed (Panicked)
+INFO:     127.0.0.1:58171 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:58171 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58189 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppppp sendddd fasttttt (Panicked)
+ ❌ [Proxy] Error: Server disconnected without sending a response.
+INFO:     127.0.0.1:58191 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helpppp my hand got cut with knife send abulanceee (Panicked)
+INFO:     127.0.0.1:58261 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 141 E 33rd St, New York, NY 10016 (Panicked)
+INFO:     127.0.0.1:58261 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: my vien is cutt my blooddddd helppppp (Panicked)
+INFO:     127.0.0.1:58288 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help is here i am safe end call (Panicked)
+INFO:     127.0.0.1:58294 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help is here i am safe end call (Panicked)
+INFO:     127.0.0.1:58300 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help is here i am safe end call (Panicked)
+INFO:     127.0.0.1:58300 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes end\ (Panicked)
+INFO:     127.0.0.1:58319 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58341) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58342) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26055]
+INFO:     Started server process [26512]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 58370) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26512]
+INFO:     Started server process [26517]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 58385) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26517]
+INFO:     Started server process [26519]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 58391) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26519]
+INFO:     Started server process [26541]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 58408) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26541]
+INFO:     Started server process [26543]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 58409) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26543]
+INFO:     Started server process [26615]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 58463) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58503) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58504) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58506) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58514) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58516) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58517) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:58520 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helpppp there is fire in my house (Panicked)
+INFO:     127.0.0.1:58526 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:58531 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: sned helppp asap i will be burnnnn i am alone my oven picked fire (Panicked)
+INFO:     127.0.0.1:58538 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🚑 [Server] Dispatch Initiated for 5557573
+ 🚑 [Server] Dispatch Initiated for 5557573
+INFO:     127.0.0.1:58546 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58546 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58546 - "GET /chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58558) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58560) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58562) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58566) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58567) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58568) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58569) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58573) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: helppp tere iss fir in my house in my oven my son is burn send ambulance and fire bridgade (Panicked)
+INFO:     127.0.0.1:58579 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58588 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58588 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+ 📤 [Proxy] Sending to Colab: helppp tere iss fir in my house in my oven my son is burn send ambulance and fire bridgade (Panicked)
+INFO:     127.0.0.1:58590 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 690 Long Bridge Street, San Francisco, CA 94158. yes inside house (Panicked)
+INFO:     127.0.0.1:58605 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58615 - "GET /chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58626) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58628) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58634) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: Help there is fire in my  house sne dhelp asap (Panicked)
+INFO:     127.0.0.1:58617 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:58639 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes we whol efamily is burning slowly and saffocation please send help asap (Panicked)
+INFO:     127.0.0.1:58648 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🛑 [Proxy] Manual End Call Requested for 555-9930
+ [DB] Call saved: d2ad223d-9867-4ff4-947b-a487ebf58125 | Emotion: Panicked
+ 💾 [Proxy] Manual Save to DB: d2ad223d-9867-4ff4-947b-a487ebf58125
+INFO:     127.0.0.1:58658 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58665) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58666) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: there are thives in my house 10 armed thivees 141 E 33rd St, New York, NY 10016 (Panicked)
+INFO:     127.0.0.1:58672 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes i am under the bed send helppp asapppppp (Panicked)
+INFO:     127.0.0.1:58679 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helpp my hand is cutt becuase of a glass broken in house during a eath quake we alot of 50 peroppe are injured at 311 W Illinois St, Chicago, IL 60654 (Panicked)
+INFO:     127.0.0.1:58697 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58706 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58706 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58718) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58721) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58722) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58724) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:58708 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58708 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+ 📤 [Proxy] Sending to Colab: elpp my hand is cutt becuase of a glass broken in house during a eath quake we alot of 50 peroppe are injured at 311 W Illinois St, Chicago, IL 60654 (Panicked)
+INFO:     127.0.0.1:58730 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58739 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helpp my hand is cutt becuase of a glass broken in house during a eath quake we alot of 50 people are injured at 311 W Illinois St, Chicago, IL 60654 (Panicked)
+INFO:     127.0.0.1:58741 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help there is armed thives in my house i am under the bed my address is 141 E 33rd St, New York, NY 10016 (Panicked)
+INFO:     127.0.0.1:58759 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58764 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help there is armed thives in my house i am under the bed my address is 141 E 33rd St, New York, NY 10016 (Panicked)
+INFO:     127.0.0.1:58764 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: no i am safe i am alone my son is about to come at home helpp mee send help asappp (Panicked)
+INFO:     127.0.0.1:58766 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help is here i am safe (Panicked)
+INFO:     127.0.0.1:58781 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🛑 [Proxy] Manual End Call Requested for 555-4458
+ [DB] Call saved: d6705215-d51e-450e-8821-f1e9c6bc282c | Emotion: Panicked
+ 💾 [Proxy] Manual Save to DB: d6705215-d51e-450e-8821-f1e9c6bc282c
+INFO:     127.0.0.1:58791 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: he is minor 3 class they will kill him helpppp meeee (Crying)
+INFO:     127.0.0.1:58800 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:58886 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58886 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58886 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58886 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     ('127.0.0.1', 58889) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 58891) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 58894) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: helppppp. there is fire at my home 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:58905 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: fan has picked fire send help asap (Panicked)
+INFO:     127.0.0.1:58915 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes help is here (Panicked)
+ 🛑 [Proxy] Manual End Call Requested for 555-5546
+ [DB] Call saved: 997a22c7-b481-4d4e-8289-0bb77113df6c | Emotion: Panicked
+ 💾 [Proxy] Manual Save to DB: 997a22c7-b481-4d4e-8289-0bb77113df6c
+INFO:     127.0.0.1:58923 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58915 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58935 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: helppppp. there is fire at my home 690 Long Bridge Street, San Francisco, CA 94158 (Panicked)
+INFO:     127.0.0.1:58937 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: help there are thives here i am under the bed they are armed 141 E 33rd St, New York, NY 10016 (Panicked)
+INFO:     127.0.0.1:58948 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes send help asap there is 10 people burning here (Panicked)
+INFO:     127.0.0.1:58955 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: they are searching for gold in my cupboard help asappp (Panicked)
+INFO:     127.0.0.1:58966 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🛑 [Proxy] Manual End Call Requested for 555-6911
+ [DB] Call saved: 59952296-035e-46a7-9e7d-e888921d2f16 | Emotion: Panicked
+ 💾 [Proxy] Manual Save to DB: 59952296-035e-46a7-9e7d-e888921d2f16
+INFO:     127.0.0.1:58973 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes they are armed (Panicked)
+INFO:     127.0.0.1:58982 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: yes correct address (Panicked)
+INFO:     127.0.0.1:58989 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59085 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59085 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59087 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59087 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 59100) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 59102) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 59104) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 59110) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 59111) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 59113) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 59114) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:59118 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59120 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 59122) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 59123) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 59125) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26615]
+INFO:     Started server process [27047]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 59194) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 59195) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 59196) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 61091) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 61092) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 61093) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 61132) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 61133) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 61134) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 62342) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 62344) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 62345) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: Help help! (Panicked)
+INFO:     127.0.0.1:62922 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 62963) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 62965) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 62968) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:63019 - "OPTIONS /api/reset-system HTTP/1.1" 200 OK
+ 🧹 [System] Cleared 1 active simulations from memory.
+INFO:     127.0.0.1:63019 - "POST /api/reset-system HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 63030) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 63032) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 63033) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 63047) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 63049) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 63051) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 63054) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 63055) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 63056) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:63064 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63064 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:63066 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: There is a man holding firearm. (Panicked)
+INFO:     127.0.0.1:63084 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: I'm at the manhattan. (Panicked)
+INFO:     127.0.0.1:63091 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Near the 15th St (Panicked)
+INFO:     127.0.0.1:63137 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Google NYC (Panicked)
+INFO:     127.0.0.1:63156 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: In the bulding parking and the man is near me I'm afraid. (Panicked)
+INFO:     127.0.0.1:63172 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: At the Chelsmore Apts (Panicked)
+INFO:     127.0.0.1:63185 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: They arrived. (Panicked)
+INFO:     127.0.0.1:63203 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Yes they arrived and the person had a lisence of that fire arm (Panicked)
+INFO:     127.0.0.1:63218 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Alright. (Panicked)
+INFO:     127.0.0.1:63224 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:63352 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63968 - "GET /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63970 - "GET / HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64015) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64018) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64020) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64039) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64041) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64043) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64045 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Help help! (Panicked)
+INFO:     127.0.0.1:64047 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64057 - "GET /chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:64059 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64063 - "OPTIONS /api/reset-system HTTP/1.1" 200 OK
+ 🧹 [System] Cleared 4 active simulations from memory.
+INFO:     127.0.0.1:64063 - "POST /api/reset-system HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64071) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64073) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64074) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:64076 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Help help! (Panicked)
+INFO:     127.0.0.1:64088 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 🧹 [System] Cleared 2 active simulations from memory.
+INFO:     127.0.0.1:64094 - "POST /api/reset-system HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64102) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64104) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64105) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:64110 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Help help! (Panicked)
+INFO:     127.0.0.1:64116 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Help Help (Panicked)
+INFO:     127.0.0.1:64128 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64167 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64169 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64170) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64182) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64183) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64185) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64187 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64189 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64190) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64195) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64213 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64215 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64225) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64226) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64228) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64230) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64239) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64298) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64299) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64301) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64304 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64304 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64309) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64316) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64317) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64320) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/database/db_manager.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [27047]
+INFO:     Started server process [40042]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 64356) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64357) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40042]
+INFO:     Started server process [40058]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 64380) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64381) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64429) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64431) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64434) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64438 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64438 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64442) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64443) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64444) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64446) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64447) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64448) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64440 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64440 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64451) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64452) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64454 - "GET /chat HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64457) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:64456 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64468 - "OPTIONS /api/reset-system HTTP/1.1" 200 OK
+ 🧹 [System] Cleared 1 active simulations from memory.
+INFO:     127.0.0.1:64468 - "POST /api/reset-system HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64479) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64481) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64482) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64485 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64485 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64488) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64489) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64490) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64491) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:64493 - "POST /api/test-chat HTTP/1.1" 200 OK
+ 📤 [Proxy] Sending to Colab: Help Help (Panicked)
+INFO:     127.0.0.1:64501 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64487 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64487 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64509) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ 🛑 [Proxy] Manual End Call Requested for 555-4028
+ [DB] Call saved: 98f9cbf9-3d71-43ee-9243-08bb10f37dcb | Emotion: Panicked | Phone: 555-4028
+ 💾 [Proxy] Manual Save to DB: 98f9cbf9-3d71-43ee-9243-08bb10f37dcb
+INFO:     127.0.0.1:64519 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64523) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64531) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64508 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64508 - "GET /calls HTTP/1.1" 200 OK
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64587 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64587 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64592) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64593) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64595) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64597 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64599 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64600) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64601) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64602) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64604 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64604 - "GET /calls HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40058]
+INFO:     Started server process [40304]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 64661) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64662) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/database/db_manager.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40304]
+WARNING:  WatchFiles detected changes in 'server/database/db_manager.py'. Reloading...
+INFO:     Started server process [40344]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 64685) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64686) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40344]
+INFO:     Started server process [40362]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 64706) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64707) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40362]
+INFO:     Started server process [40370]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 64713) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64714) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'server/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40370]
+INFO:     Started server process [40375]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 64719) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64720) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64744) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64745) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Config Debug] Loading .env.local from /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/.env.local: False
+ [Config Debug] Loaded AI_MODE: MOCK
+ [Config] System Configured for Mode: MOCK
+ 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...
+ [MockAI] Initialized. Running in LAPTOP MODE (No GPU required).
+ [DB] Database initialized at /Users/hassanrizvi/Documents/GitHub/EAEDS_FYP/Emotion-Aware-Emergency-Dispatch/server/database/calls.db
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64747 - "OPTIONS /api/reset-system HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64748) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ ❌ [System] Reset Failed: 'FastAPI' object has no attribute 'active_simulations'
+INFO:     127.0.0.1:64747 - "POST /api/reset-system HTTP/1.1" 500 Internal Server Error
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64754 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64754 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64757) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64758) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64759) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64760) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+ [Server] Client disconnected. Saving call to DB...
+ 📤 [Proxy] Sending to Colab: RESET (Neutral)
+INFO:     127.0.0.1:64762 - "POST /api/test-chat HTTP/1.1" 200 OK
+INFO:     connection closed
+ [Server] Client disconnected. Saving call to DB...
+INFO:     127.0.0.1:64756 - "GET /calls HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64756 - "GET /calls HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 64770) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64773) - "WebSocket /ws/call" [accepted]
+INFO:     connection closed
+INFO:     ('127.0.0.1', 64774) - "WebSocket /ws/call" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 64775) - "WebSocket /ws/call" [accepted]
+INFO:     connection open

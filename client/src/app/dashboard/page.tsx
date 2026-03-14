@@ -1,23 +1,92 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Sidebar from "@/components/live/Sidebar";
-import { MESSAGES } from "@/data/mock_data";
-import { ARCHIVE_MESSAGES } from "@/data/archiveMessages";
 import { Activity, Phone, User, Bot, Siren, Archive as ArchiveIcon } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Call } from "@/data/types";
+
+interface ServerMessage {
+    event: "db_response" | "ai_response" | "incoming_call" | "audio_relay";
+    data?: Record<string, Call>;
+    text?: string;
+    user_text?: string;
+    emotion?: string;
+    location?: [number, number];
+}
+
+const getWsUrl = () => {
+    return "ws://127.0.0.1:8000/ws/call";
+};
 
 export default function Dashboard() {
-    const activeCalls = Object.values(MESSAGES);
-    const archivedCalls = Object.values(ARCHIVE_MESSAGES);
+    const [data, setData] = useState<Record<string, Call>>({});
+    const wsRef = useRef<WebSocket | null>(null);
+
+    useEffect(() => {
+        const connect = () => {
+            const ws = new WebSocket(getWsUrl());
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ event: "get_db" }));
+            };
+
+            ws.onmessage = (event: MessageEvent) => {
+                const message = JSON.parse(event.data) as ServerMessage;
+                if (message.event === "db_response" && message.data) {
+                    setData(prevData => ({ ...prevData, ...message.data }));
+                } else if (message.event === "ai_response") {
+                    // Update live session specifically if it's currently active
+                    setData(prevData => {
+                        const phone = (message as any).phone;
+                        const liveCallId = (message as any).id || "unknown_call";
+                        if (!prevData[liveCallId]) return prevData;
+
+                        const currentCall = prevData[liveCallId];
+                        return {
+                            ...prevData,
+                            [liveCallId]: {
+                                ...currentCall,
+                                severity: "CRITICAL",
+                                type: "Emergency",
+                            }
+                        };
+                    });
+                }
+            };
+        };
+
+        connect();
+
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
+        };
+    }, []);
+
+    // Split data into active and archived purely based on severity/status
+    const calls = Object.values(data);
+    const activeCalls = calls.filter(c => c.severity === "CRITICAL" || c.severity === "MODERATE" || c.status === "Connected");
+    const archivedCalls = calls.filter(c => c.severity === "RESOLVED" || c.severity === "UNRESOLVED");
 
     const stats = {
-        totalReceived: activeCalls.length + archivedCalls.length,
-        aiHandled: activeCalls.filter(c => c.responder_type === 'AI').length,
-        humanHandled: activeCalls.filter(c => c.responder_type === 'Human').length,
-        criticalActive: activeCalls.filter(c => c.severity === 'CRITICAL').length,
+        totalReceived: calls.length,
+        aiHandled: calls.filter(c => c.responder_type === 'AI' || !c.responder_type).length,
+        humanHandled: calls.filter(c => c.responder_type === 'Human').length,
+        criticalActive: activeCalls.filter(c => c.severity === 'CRITICAL' || c.status === "Connected").length,
         resolvedArchived: archivedCalls.length
     };
+
+    // Sort calls by most recent
+    const recentCalls = [...calls].sort((a, b) => {
+        const timeA = a.time ? new Date(a.time).getTime() : 0;
+        const timeB = b.time ? new Date(b.time).getTime() : 0;
+        return timeB - timeA;
+    }).slice(0, 5); // display up to 5 recent calls
 
     const StatCard = ({ title, value, icon: Icon, color, subtext }: { title: string, value: number, icon: any, color: string, subtext: string }) => (
         <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition-all hover:bg-slate-900/80 hover:scale-[1.02] group">
@@ -42,7 +111,6 @@ export default function Dashboard() {
 
     return (
         <div className="flex h-screen w-full bg-slate-950 text-slate-200 selection:bg-blue-500/30 font-sans">
-            {/* Layout Wrapper to match other pages */}
             <div className="flex h-full w-full p-2">
                 <Sidebar />
 
@@ -121,29 +189,33 @@ export default function Dashboard() {
                             />
                         </div>
 
-                        {/* Placeholder for future charts or lists */}
+                        {/* Recent Activity Log */}
                         <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/40 p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold text-white">Recent Activity</h3>
-                                <button className="text-xs text-blue-400 hover:text-blue-300">View All Log</button>
+                                <Link href="/archive" className="text-xs text-blue-400 hover:text-blue-300">
+                                    View All Log
+                                </Link>
                             </div>
                             <div className="space-y-4">
-                                {activeCalls.slice(0, 3).map((call) => (
-                                    <div key={call.id} className="flex items-center justify-between p-4 rounded-lg bg-slate-950/50 border border-slate-800/50">
+                                {recentCalls.length === 0 ? (
+                                    <p className="text-sm text-slate-500 italic">No recent activity detected.</p>
+                                ) : recentCalls.map((call) => (
+                                    <Link key={call.id} href={`/archive?id=${call.id}`} className="flex items-center justify-between p-4 rounded-lg bg-slate-950/50 border border-slate-800/50 transition-all hover:bg-slate-900 cursor-pointer">
                                         <div className="flex items-center space-x-4">
-                                            <div className={cn("h-2 w-2 rounded-full", call.status === "Connected" ? "bg-green-500 animate-pulse" : "bg-slate-500")} />
+                                            <div className={cn("h-2 w-2 rounded-full", call.severity === "CRITICAL" ? "bg-red-500 animate-pulse" : (call.severity === "RESOLVED" ? "bg-green-500" : "bg-slate-500"))} />
                                             <div>
                                                 <p className="font-medium text-slate-200">{call.title || "Emergency Call"}</p>
-                                                <p className="text-xs text-slate-500">{call.location_name}</p>
+                                                <p className="text-xs text-slate-500">{call.location_name || "Unknown Location"}</p>
                                             </div>
                                         </div>
                                         <span className={cn(
                                             "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded",
-                                            call.severity === "CRITICAL" ? "bg-red-500/10 text-red-500" : "bg-slate-800 text-slate-400"
+                                            call.severity === "CRITICAL" ? "bg-red-500/10 text-red-500" : (call.severity === "RESOLVED" ? "bg-green-500/10 text-green-500" : "bg-slate-800 text-slate-400")
                                         )}>
                                             {call.severity || "MODERATE"}
                                         </span>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </div>
