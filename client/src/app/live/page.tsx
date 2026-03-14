@@ -104,6 +104,8 @@ const Page = () => {
 
     // Track what location_name was last geocoded per call, to detect changes
     const geocodedNamesRef = React.useRef<Record<string, string>>({});
+    // Track failed geocode attempts to avoid infinite retry loops (429 rate limit)
+    const geocodeFailedRef = React.useRef<Record<string, number>>({});
 
     // Map phone numbers to backend-assigned call IDs (set once on incoming_call, reused on ai_response)
     const phoneToIdRef = React.useRef<Record<string, string>>({});
@@ -117,23 +119,31 @@ const Page = () => {
             for (const [id, call] of Object.entries(newData)) {
                 // If we have a location name from the LLM...
                 if (call.location_name && call.location_name !== "Unknown" && call.location_name !== "Detecting...") {
-                    // Geocode if: no coords yet, coords are 0/0, OR the name changed since last geocode
-                    const needsGeocode = !call.location_coords
+                    // Geocode if: active/dispatching call AND (no coords yet OR the name changed since last geocode)
+                    const isActiveCall = call.status !== "Disconnected" && call.status !== "Archived";
+                    const isNewLocation = geocodedNamesRef.current[id] !== call.location_name;
+                    const needsGeocode = isActiveCall && (
+                        !call.location_coords
                         || (call.location_coords.lat === 0 && call.location_coords.lng === 0)
-                        || (geocodedNamesRef.current[id] !== call.location_name);
+                        || isNewLocation
+                    );
 
                     if (needsGeocode) {
+                        // Skip if we already failed recently for this exact location (avoid 429 loop)
+                        const failKey = `${id}:${call.location_name}`;
+                        const lastFail = geocodeFailedRef.current[failKey];
+                        if (lastFail && Date.now() - lastFail < 30000) {
+                            continue; // Wait at least 30s before retrying
+                        }
+
                         let coords: { lat: number; lng: number } | null = null;
 
                         // 1. Try to resolve from pre-stored constants first
-                        //    location_name for city-level is "City, ST" (e.g., "New York, NY")
                         const cityState = (call as any).city_state || call.location_name;
                         const isCityLevel = call.location_name === cityState;
 
                         if (isCityLevel && cityState && cityState !== "Unknown") {
-                            // SKIP city-level geocoding entirely — wait for the actual address
-                            // The LLM will provide a specific address shortly after
-                            console.log(`📍 [Skip] City-level location '${cityState}' — waiting for specific address`);
+                            // console.log(`📍 [Skip] City-level location '${cityState}' — waiting for specific address`);
                             geocodedNamesRef.current[id] = call.location_name;
                             continue;
                         }
@@ -151,9 +161,15 @@ const Page = () => {
                                         lng: parseFloat(geoData[0].lon)
                                     };
                                     console.log(`📍 [Geocode API] ${call.location_name} → ${coords.lat}, ${coords.lng}`);
+                                    // Clear any previous failure
+                                    delete geocodeFailedRef.current[failKey];
+                                } else {
+                                    // Empty result (likely 429 upstream) — mark as failed
+                                    geocodeFailedRef.current[failKey] = Date.now();
                                 }
                             } catch (err) {
                                 console.error("Failed to geocode LLM location:", err);
+                                geocodeFailedRef.current[failKey] = Date.now();
                             }
                         }
 

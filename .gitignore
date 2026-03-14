@@ -19,3 +19,5 @@ yarn-error.log*
 
 # Project Specific
 server/database/*.db
+server/tts_models/
+.venv/
