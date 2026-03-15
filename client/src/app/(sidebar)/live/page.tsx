@@ -596,7 +596,39 @@ const Page = () => {
         socket.onmessage = (event: MessageEvent) => {
             const message = JSON.parse(event.data) as ServerMessage;
 
-            if (message.event === "ai_response") {
+            if (message.event === "ai_streaming_chunk") {
+                setData(prevData => {
+                    const phone = (message as any).phone;
+                    const liveCallId = (message as any).id 
+                        || (phone && phone !== "Unknown" && phoneToIdRef.current[phone])
+                        || "unknown_call";
+                        
+                    const currentCall = prevData[liveCallId];
+                    if (!currentCall) return prevData;
+
+                    const newTranscript = [...currentCall.transcript];
+                    const newChunk = (message as any).text_chunk.trim();
+                    
+                    if (newChunk) {
+                        const lastMsg = newTranscript[newTranscript.length - 1];
+                        // Strict Deduplication: If the latest chunk is identical to the previous one, skip it
+                        if (lastMsg && lastMsg.content.trim() === newChunk) {
+                            return prevData;
+                        }
+
+                        // Push EVERY chunk as a new message bubble (user request)
+                        newTranscript.push({ role: "assistant", content: newChunk });
+                    }
+
+                    return {
+                        ...prevData,
+                        [liveCallId]: {
+                            ...currentCall,
+                            transcript: newTranscript
+                        }
+                    };
+                });
+            } else if (message.event === "ai_response") {
                 console.log("Received AI response", message);
                 setData(prevData => {
                     // DYNAMIC ID: Use the backend-generated call ID
@@ -729,7 +761,8 @@ const Page = () => {
                             city_state: newCityState,
                             status: newStatus,
                             severity: newSeverity,
-                            dispatched_services: newDispatchedServices
+                            dispatched_services: newDispatchedServices,
+                            ended_at: (message as any).end_time || currentCall.ended_at
                         }
                     };
                 });

@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState, useEffect } from "react";
 import { Call } from "@/data/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,24 +52,42 @@ const EventPanel = ({
     onFilterChange,
     countersData
 }: EventPanelProps) => {
+    const [now, setNow] = useState(new Date());
     const [search, setSearch] = useState("");
-    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.currentTarget.value);
+        setSearch(e.target.value);
+    };
+
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const getDuration = (isoDate: string, endIsoDate?: string) => {
+        if (!isoDate) return "00:00";
+        try {
+            const start = new Date(isoDate);
+            const end = endIsoDate ? new Date(endIsoDate) : now;
+            const diff = Math.max(0, end.getTime() - start.getTime());
+            const totalSec = Math.floor(diff / 1000);
+            const mm = Math.floor(totalSec / 60).toString().padStart(2, '0');
+            const ss = (totalSec % 60).toString().padStart(2, '0');
+            return `${mm}:${ss}`;
+        } catch { return "00:00"; }
     };
 
     // Helper: relative time
     const getRelativeTime = (isoDate: string) => {
         if (!isoDate) return "";
-        const now = new Date();
         const then = new Date(isoDate);
         const diffMs = now.getTime() - then.getTime();
         const diffSec = Math.floor(diffMs / 1000);
         if (diffSec < 60) return "Just now";
         const diffMin = Math.floor(diffSec / 60);
-        if (diffMin < 60) return `${diffMin} min ago`;
+        if (diffMin < 60) return `${diffMin}m ago`;
         const diffHr = Math.floor(diffMin / 60);
         if (diffHr < 24) return `${diffHr}h ago`;
         const diffDay = Math.floor(diffHr / 24);
@@ -90,7 +108,7 @@ const EventPanel = ({
         );
         if (!matched) return null;
         try {
-            return new Date().toLocaleTimeString("en-US", {
+            return now.toLocaleTimeString("en-US", {
                 timeZone: matched.tz,
                 hour: '2-digit',
                 minute: '2-digit',
@@ -383,6 +401,11 @@ const EventPanel = ({
                             const previewText = lastMsg ? `${previewPrefix}${lastMsg.content}` : "No transcript available";
                             const cityState = (emergency as any).city_state || emergency.location_name || "Unknown";
                             const localTime = getLocalTime(emergency);
+                            const duration = getDuration(emergency.time, (emergency as any).ended_at);
+                            const isLive = showCounters && 
+                                           !(emergency as any).is_archived && 
+                                           emergency.status !== "Disconnected" &&
+                                           !(emergency as any).ended_at;
 
                             return (
                                 <div
@@ -400,7 +423,7 @@ const EventPanel = ({
                                     )}
                                     onClick={() => handleSelect(emergency.id)}
                                 >
-                                    {/* Row 1: Title + Local Time */}
+                                    {/* Row 1: Title + Local Time / Timer */}
                                     <div className="flex items-start justify-between mb-1">
                                         <h4 className={cn(
                                             "text-sm font-bold leading-tight",
@@ -408,9 +431,18 @@ const EventPanel = ({
                                         )}>
                                             {emergency.title || "Emergency Call"}
                                         </h4>
-                                        <span className="text-[10px] text-slate-500 font-medium shrink-0 ml-2 mt-0.5" suppressHydrationWarning>
-                                            {localTime || getRelativeTime(emergency.time)}
-                                        </span>
+                                        <div className="flex flex-col items-end shrink-0 ml-2 mt-0.5">
+                                            {isLive ? (
+                                                <span className="text-[11px] font-mono font-bold text-red-500 flex items-center gap-1">
+                                                    <Clock size={10} className="animate-pulse" />
+                                                    {duration}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap" suppressHydrationWarning>
+                                                    {localTime || getRelativeTime(emergency.time)}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Row 2: Agent + Location */}

@@ -69,11 +69,25 @@ export default function PhonePage() {
     const [selectedCity, setSelectedCity] = useState("New York");
     const [regLocation, setRegLocation] = useState<string | null>(null);
     const [status, setStatus] = useState<"IDLE" | "CALLING" | "CONNECTED" | "ENDED">("IDLE");
+    const statusRef = useRef(status);
     const [callPhase, setCallPhase] = useState<"LISTENING" | "PROCESSING" | "SPEAKING">("LISTENING");
     const [ws, setWs] = useState<WebSocket | null>(null);
+    // Audio State and Refs
     const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const vqRef = useRef<number>(0); // animation frame ref
+    const chunksRef = useRef<Blob[]>([]);
+    const hasSpokenRef = useRef<boolean>(false);
+    const aiAudioRef = useRef<HTMLAudioElement | null>(null);
     const [isMuted, setIsMuted] = useState(false);
     const [transcript, setTranscript] = useState<string[]>([]);
+
+    useEffect(() => {
+        statusRef.current = status;
+    }, [status]);
 
     // Update cities when state changes
     useEffect(() => {
@@ -187,12 +201,9 @@ export default function PhonePage() {
 
         socket.onmessage = (event) => {
             const msg = JSON.parse(event.data);
-            // Handle TTS audio from AI dispatcher
             if (msg.event === "tts_audio" && msg.chunk) {
                 setCallPhase("SPEAKING");
                 playAudioChunk(msg.chunk);
-                // After playing, go back to listening (estimate ~3s for short responses)
-                setTimeout(() => setCallPhase("LISTENING"), 3000);
             }
             // Handle AI response transcript
             if (msg.event === "ai_response") {
@@ -202,6 +213,9 @@ export default function PhonePage() {
                 }
                 if (msg.text) {
                     setTranscript(prev => [...prev, `911: ${msg.text}`]);
+                }
+                if (msg.end_call) {
+                    handleEndCall();
                 }
             }
             // Legacy audio relay (manual mode)
@@ -225,26 +239,106 @@ export default function PhonePage() {
     };
 
     // Audio Logic
+    // Audio Logic
     const startAudio = async (socket: WebSocket) => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             setAudioStream(stream);
 
+            // 1. Setup VAD (AudioContext + Analyser)
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            const audioCtx = new AudioContextClass();
+            audioContextRef.current = audioCtx;
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 512;
+            analyser.minDecibels = -70;
+            analyser.smoothingTimeConstant = 0.2;
+            analyserRef.current = analyser;
+
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            // 2. Setup MediaRecorder for capturing the clean audio
             const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            mediaRecorderRef.current = mediaRecorder;
+
             mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+                if (e.data.size > 0) {
+                    chunksRef.current.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                if (chunksRef.current.length > 0 && socket.readyState === WebSocket.OPEN) {
+                    const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         const base64 = (reader.result as string).split(',')[1];
                         socket.send(JSON.stringify({
-                            event: "audio_relay",
+                            event: "user_utterance",
                             chunk: base64
                         }));
                     };
-                    reader.readAsDataURL(e.data);
+                    reader.readAsDataURL(blob);
+                }
+                chunksRef.current = [];
+                
+                // Restart recording for the next utterance if still connected
+                if (socket.readyState === WebSocket.OPEN) {
+                    mediaRecorder.start();
                 }
             };
-            mediaRecorder.start(250);
+
+            // Start initial recording
+            mediaRecorder.start();
+
+            // 3. VAD Loop (using setInterval for stability)
+            vqRef.current = window.setInterval(() => {
+                if (socket.readyState !== WebSocket.OPEN) return;
+
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                const avgVolume = sum / dataArray.length;
+
+                // Threshold tune (e.g. > 15 is speaking)
+                const isSpeakingNow = avgVolume > 15;
+
+                if (isSpeakingNow) {
+                    hasSpokenRef.current = true;
+                    setCallPhase("LISTENING");
+
+                    // Barge-in: If AI is talking, cut her off!
+                    if (aiAudioRef.current && !aiAudioRef.current.paused) {
+                        aiAudioRef.current.pause();
+                        aiAudioRef.current.onended = null;
+                        audioQueueRef.current = [];
+                        isPlayingRef.current = false;
+                        socket.send(JSON.stringify({ event: "interrupt" }));
+                    }
+
+                    // Reset silence timer because user is speaking
+                    if (silenceTimerRef.current) {
+                        clearTimeout(silenceTimerRef.current);
+                        silenceTimerRef.current = null;
+                    }
+                } else {
+                    // Volume is low. If we don't have a timer and user spoke, start one.
+                    if (!silenceTimerRef.current && hasSpokenRef.current) {
+                        silenceTimerRef.current = setTimeout(() => {
+                            // Silence duration reached (1200ms to allow for panicking breath/pauses)
+                            if (mediaRecorder.state === "recording") {
+                                mediaRecorder.stop(); // Triggers onstop -> sends chunk -> starts again
+                            }
+                            silenceTimerRef.current = null;
+                            hasSpokenRef.current = false;
+                        }, 1200);
+                    }
+                }
+            }, 50); // run every 50ms
+
         } catch (err) {
             console.error("Mic Access Denied", err);
         }
@@ -255,13 +349,69 @@ export default function PhonePage() {
             audioStream.getTracks().forEach(track => track.stop());
             setAudioStream(null);
         }
+        if (vqRef.current) {
+            clearInterval(vqRef.current);
+            vqRef.current = 0;
+        }
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.stop();
+        }
+        mediaRecorderRef.current = null;
+        if (audioContextRef.current) {
+            audioContextRef.current.close().catch(console.error);
+            audioContextRef.current = null;
+        }
+        if (aiAudioRef.current) {
+            aiAudioRef.current.pause();
+            aiAudioRef.current.onended = null;
+        }
+        audioQueueRef.current = [];
+        isPlayingRef.current = false;
+        hasSpokenRef.current = false;
+        chunksRef.current = [];
+    };
+
+    const audioQueueRef = useRef<string[]>([]);
+    const isPlayingRef = useRef<boolean>(false);
+
+    const processAudioQueue = () => {
+        if (audioQueueRef.current.length === 0) {
+            isPlayingRef.current = false;
+            setCallPhase("LISTENING");
+            return;
+        }
+
+        isPlayingRef.current = true;
+        const base64 = audioQueueRef.current.shift()!;
+        
+        try {
+            const audio = new Audio("data:audio/webm;base64," + base64);
+            aiAudioRef.current = audio;
+            
+            audio.onended = () => {
+                // Play next chunk if available, otherwise return to LISTENING
+                processAudioQueue();
+            };
+            
+            audio.play().catch(e => {
+                console.error("Audio playback error:", e);
+                processAudioQueue(); // skip to next on error
+            });
+        } catch (e) {
+            console.error("Audio creation error:", e);
+            processAudioQueue(); // skip to next on error
+        }
     };
 
     const playAudioChunk = (base64: string) => {
-        try {
-            const audio = new Audio("data:audio/webm;base64," + base64);
-            audio.play().catch(e => console.error(e));
-        } catch (e) { }
+        audioQueueRef.current.push(base64);
+        if (!isPlayingRef.current) {
+            processAudioQueue();
+        }
     };
 
     const cities = STATE_CITIES[selectedState] || [];

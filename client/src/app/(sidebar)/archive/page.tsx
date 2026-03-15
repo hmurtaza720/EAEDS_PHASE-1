@@ -464,6 +464,48 @@ const Page = () => {
 
                                         <Separator className="bg-slate-800/50" />
 
+                                        {/* Call Metrics Section */}
+                                        <div className="space-y-3 bg-slate-900/30 p-2.5 rounded-lg border border-slate-800/50">
+                                            <div className="flex items-center space-x-2">
+                                                <Info size={14} className="text-blue-400" />
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Call Metrics</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                    <p className="text-[9px] text-slate-500 uppercase font-semibold">Started At</p>
+                                                    <p className="text-[11px] text-slate-200 font-mono">
+                                                        {data[selectedId]?.started_at ? new Date(data[selectedId].started_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A"}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <p className="text-[9px] text-slate-500 uppercase font-semibold">Ended At</p>
+                                                    <p className="text-[11px] text-slate-200 font-mono">
+                                                        {data[selectedId]?.ended_at ? new Date(data[selectedId].ended_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A"}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-[9px] text-slate-500 uppercase font-semibold">Duration</p>
+                                                    <p className="text-[11px] text-blue-400 font-bold font-mono">
+                                                        {(() => {
+                                                            const sec = data[selectedId]?.duration_seconds || 0;
+                                                            const m = Math.floor(sec / 60);
+                                                            const s = sec % 60;
+                                                            return `${m}m ${s}s`;
+                                                        })()}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <p className="text-[9px] text-slate-500 uppercase font-semibold">Ended By</p>
+                                                    <p className={cn(
+                                                        "text-[10px] font-bold px-1.5 py-0.5 rounded inline-block",
+                                                        data[selectedId]?.ended_by === "AI" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                                                    )}>
+                                                        {data[selectedId]?.ended_by || "Caller"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         {/* Emotions Section */}
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">

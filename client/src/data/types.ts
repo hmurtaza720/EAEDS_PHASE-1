@@ -27,6 +27,10 @@ export type Call = {
     agent_name?: string;
     responder_type?: "AI" | "Human";
     dispatched_services?: string[];
+    ended_at?: string; // ISO Date String
+    started_at?: string; // ISO Date String
+    duration_seconds?: number;
+    ended_by?: "AI" | "Caller" | "Unknown";
 };
 
 export interface CallProps {

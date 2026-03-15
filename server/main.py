@@ -286,6 +286,75 @@ async def websocket_endpoint(websocket: WebSocket):
                     "timestamp": str(datetime.now()),
                     "is_recovery": False
                 }))
+
+                # Generate and send initial greeting
+                greeting_text = "911, what's your emergency?"
+                
+                if tts_voice:
+                    try:
+                        tts_wav_path = tempfile.mktemp(suffix=".wav")
+                        with wave.open(tts_wav_path, "wb") as wav_file:
+                            tts_voice.synthesize_wav(greeting_text, wav_file)
+                        
+                        with open(tts_wav_path, "rb") as f:
+                            tts_wav_data = f.read()
+                        os.unlink(tts_wav_path)
+                        
+                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as src:
+                            src.write(tts_wav_data)
+                            src_path = src.name
+                        webm_out = src_path.replace(".wav", ".webm")
+                        subprocess.run(
+                            ["ffmpeg", "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
+                            capture_output=True, timeout=10
+                        )
+                        os.unlink(src_path)
+                        if os.path.exists(webm_out):
+                            with open(webm_out, "rb") as f:
+                                webm_data = f.read()
+                            os.unlink(webm_out)
+                            tts_b64 = base64.b64encode(webm_data).decode("utf-8")
+                            
+                            # Broadcast audio chunk to phone
+                            await manager.broadcast(json.dumps({
+                                "event": "tts_audio",
+                                "chunk": tts_b64,
+                                "phone": phone
+                            }))
+                            
+                            # Broadcast text chunk to Live Dashboard (for typing effect)
+                            await manager.broadcast(json.dumps({
+                                "event": "ai_streaming_chunk",
+                                "id": call_id,
+                                "text_chunk": greeting_text,
+                                "phone": phone
+                            }))
+                            
+                            # Add to Transcript history internally
+                            app.active_simulations[phone]["transcript"].append({
+                                "role": "assistant",
+                                "content": greeting_text,
+                                "timestamp": str(datetime.now())
+                            })
+                            
+                            # Broadcast "final_meta" styled response to lock it into UI chat bubbles
+                            await manager.broadcast(json.dumps({
+                                "event": "ai_response",
+                                "id": call_id,
+                                "user_text": "",
+                                "text": "",
+                                "phone": phone,
+                                "emotion": "Neutral",
+                                "location": None,
+                                "city_state": city_state_str,
+                                "dispatched_services": [],
+                                "end_call": False,
+                                "severity": None
+                            }))
+                            
+                    except Exception as tts_err:
+                        print(f" ⚠️ [TTS Greeting Error]: {tts_err}")
+
                 continue
                 
             # Sticky Session Fix: Recover Active State on 'get_state' or initial connect?
@@ -307,136 +376,105 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             # 2. Audio Relay — Voice Pipeline or Manual Bridge
-            if message_data.get("event") == "audio_relay":
+            if message_data.get("event") == "interrupt":
+                print(f" 🛑 [Voice] Barge-in! Caller interrupted the AI.")
+                continue
+
+            if message_data.get("event") in ["user_utterance", "audio_relay"]:
                 if is_manual_mode:
                     # Manual mode: pure audio bridge to human operator
                     await manager.broadcast(data, exclude=websocket)
-                else:
-                    # AI Voice Mode: buffer chunks for voice pipeline
-                    chunk_b64 = message_data.get("chunk", "")
-                    if chunk_b64:
-                        if not hasattr(websocket, '_audio_buffer'):
-                            websocket._audio_buffer = []
-                            websocket._voice_phone = None
-                            websocket._voice_city = "Unknown"
-                            websocket._voice_state = "Unknown"
-                            websocket._voice_call_id = "unknown_call"
+                    continue
+
+                chunk_b64 = message_data.get("chunk", "")
+                if not chunk_b64:
+                    continue
+
+                # Get Request Metadata
+                phone = getattr(websocket, '_voice_phone', 'Unknown')
+                city = getattr(websocket, '_voice_city', 'Unknown')
+                state = getattr(websocket, '_voice_state', 'Unknown')
+                call_id = getattr(websocket, '_voice_call_id', 'unknown_call')
+
+                print(f"\n 🎙️ [Voice] Processing Utterance ({len(chunk_b64)} bytes) for {phone} [ID: {call_id}]")
+
+                try:
+                    # Decode single WebM blob from frontend VAD
+                    webm_bytes = base64.b64decode(chunk_b64)
+                    
+                    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as webm_file:
+                        webm_file.write(webm_bytes)
+                        webm_path = webm_file.name
+
+                    wav_path = webm_path.replace(".webm", ".wav")
+                    result = subprocess.run(
+                        ["ffmpeg", "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", "-f", "wav", wav_path],
+                        capture_output=True, timeout=10
+                    )
+
+                    if result.returncode != 0:
+                        print(f" ⚠️ [Voice] ffmpeg error: {result.stderr.decode()[:200]}")
+                        os.unlink(webm_path)
+                        continue
+
+                    os.unlink(webm_path)
+                    print(f" ✅ [Voice] ffmpeg → {wav_path}")
+
+                    # Read WAV and send to Colab
+                    COLAB_API_URL = "https://maryjo-prerational-deann.ngrok-free.dev"
+                    
+                    with open(wav_path, "rb") as f:
+                        wav_data = f.read()
+                    os.unlink(wav_path)
+
+                    print(f" 📤 [Voice] Sending {len(wav_data)} bytes WAV to Colab...")
+                    async with httpx.AsyncClient() as client:
+                        files = {"audio": ("recording.wav", wav_data, "audio/wav")}
+                        form_data = {
+                            "phone_number": phone,
+                            "city": city,
+                            "state": state,
+                            "reset": "false"
+                        }
                         
-                        websocket._audio_buffer.append(chunk_b64)
-                        
-                        # Start the batch processor ONCE (not on every chunk)
-                        if not hasattr(websocket, '_batch_processor_running') or not websocket._batch_processor_running:
-                            websocket._batch_processor_running = True
-                            
-                            async def batch_audio_processor(ws=websocket):
-                                """Fixed-interval batch processor. Runs every 4.0s, processes whatever's in the buffer."""
-                                BATCH_INTERVAL = 4.0  # seconds between processing
-                                
-                                while True:
-                                    await asyncio.sleep(BATCH_INTERVAL)
+                        try:
+                            async with client.stream("POST", f"{COLAB_API_URL}/stream-voice", data=form_data, files=files, timeout=60.0) as resp:
+                                if resp.status_code != 200:
+                                    await resp.aread()
+                                    print(f" ⚠️ [Voice] Colab returned {resp.status_code}: {resp.text[:200]}")
+                                    continue
                                     
-                                    if not hasattr(ws, '_audio_buffer') or len(ws._audio_buffer) <= 1:
-                                        continue  # Keep looping — buffer may fill later
-                                    
-                                    # Always keep the first chunk (the WebM header)
-                                    header_chunk = ws._audio_buffer[0]
-                                    buffer = ws._audio_buffer[:]
-                                    ws._audio_buffer = [header_chunk]
-                                    
-                                    phone = getattr(ws, '_voice_phone', 'Unknown')
-                                    city = getattr(ws, '_voice_city', 'Unknown')
-                                    state = getattr(ws, '_voice_state', 'Unknown')
-                                    call_id = getattr(ws, '_voice_call_id', 'unknown_call')
-                                    
-                                    total_b64_size = sum(len(c) for c in buffer)
-                                    print(f"\n 🎙️ [Voice] Processing {len(buffer)} chunks ({total_b64_size} bytes b64) for {phone} [ID: {call_id}]")
-                                    
+                                current_sim = None
+                                if hasattr(app, 'active_simulations'):
+                                    current_sim = app.active_simulations.get(phone)
+
+                                async for line in resp.aiter_lines():
+                                    if not line or not line.strip():
+                                        continue
+                                        
                                     try:
-                                        # Combine base64 chunks into a single WebM blob
-                                        combined_audio = b""
-                                        for b64_chunk in buffer:
-                                            combined_audio += base64.b64decode(b64_chunk)
+                                        data = json.loads(line)
+                                    except Exception:
+                                        continue
                                         
-                                        # Convert WebM to WAV (16kHz mono) using ffmpeg
-                                        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as webm_file:
-                                            webm_file.write(combined_audio)
-                                            webm_path = webm_file.name
-                                        
-                                        wav_path = webm_path.replace(".webm", ".wav")
-                                        result = subprocess.run(
-                                            ["ffmpeg", "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", "-f", "wav", wav_path],
-                                            capture_output=True, timeout=10
-                                        )
-                                        
-                                        if result.returncode != 0:
-                                            print(f" ⚠️ [Voice] ffmpeg error: {result.stderr.decode()[:200]}")
-                                            os.unlink(webm_path)
-                                            continue
-                                        
-                                        os.unlink(webm_path)
-                                        print(f" ✅ [Voice] ffmpeg → {wav_path}")
-                                        
-                                        # Read WAV and send to Colab
-                                        COLAB_API_URL = "https://maryjo-prerational-deann.ngrok-free.dev"
-                                        
-                                        with open(wav_path, "rb") as f:
-                                            wav_data = f.read()
-                                        os.unlink(wav_path)
-                                        
-                                        print(f" 📤 [Voice] Sending {len(wav_data)} bytes WAV to Colab...")
-                                        async with httpx.AsyncClient() as client:
-                                            files = {"audio": ("recording.wav", wav_data, "audio/wav")}
-                                            form_data = {
-                                                "phone_number": phone,
-                                                "city": city,
-                                                "state": state,
-                                                "reset": "false"
-                                            }
-                                            resp = await client.post(
-                                                f"{COLAB_API_URL}/process-voice",
-                                                files=files,
-                                                data=form_data,
-                                                timeout=30.0
-                                            )
-                                        
-                                        if resp.status_code != 200:
-                                            print(f" ⚠️ [Voice] Colab returned {resp.status_code}: {resp.text[:200]}")
-                                            continue
-                                        
-                                        ai_data = resp.json()
-                                        print(f" 📥 [Voice] Colab response: transcript='{ai_data.get('transcript', '')[:50]}' emotion='{ai_data.get('emotion')}' response='{ai_data.get('response', '')[:50]}'")
-                                        transcript_text = ai_data.get("transcript", "")
-                                        emotion = ai_data.get("emotion", "Neutral")
-                                        clean_response = ai_data.get("response", "")
-                                        location_extracted = ai_data.get("location_extracted", "")
-                                        dispatched_services = ai_data.get("dispatched_services", [])
-                                        end_call_flag = ai_data.get("end_call", False)
+                                    event_type = data.get("event")
+                                    
+                                    if event_type == "start_turn":
+                                        transcript_text = data.get("transcript", "")
+                                        emotion = data.get("emotion", "Neutral")
                                         
                                         if not transcript_text:
                                             print(f" ⏭️ [Voice] Empty transcript — skipping broadcast.")
                                             continue
-                                        
+                                            
                                         print(f" 🎤 [Voice] Transcript: {transcript_text}")
                                         print(f" 😶 [Voice] Emotion: {emotion}")
-                                        print(f" 💬 [Voice] AI: {clean_response[:80]}...")
-                                        
-                                        # Update app.active_simulations — SAME as chat page
-                                        current_sim = None
-                                        if hasattr(app, 'active_simulations'):
-                                            current_sim = app.active_simulations.get(phone)
                                         
                                         if current_sim:
                                             current_sim["transcript"].append({"role": "user", "content": transcript_text, "timestamp": str(datetime.now())})
-                                            if clean_response:
-                                                current_sim["transcript"].append({"role": "assistant", "content": clean_response, "timestamp": str(datetime.now())})
                                             current_sim["emotion"] = emotion
-                                            if location_extracted:
-                                                current_sim["location"] = location_extracted
-                                            if dispatched_services:
-                                                current_sim["dispatched_services"] = current_sim.get("dispatched_services", []) + dispatched_services
-                                                current_sim["dispatched"] = True
-                                        
-                                        # Broadcast user text immediately (with call ID)
+                                            
+                                        # Broadcast user text purely to update UI with what they just said
                                         await manager.broadcast(json.dumps({
                                             "event": "ai_response",
                                             "id": call_id,
@@ -448,22 +486,95 @@ async def websocket_endpoint(websocket: WebSocket):
                                             "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown"
                                         }))
                                         
-                                        # Broadcast AI response (with call ID)
+                                    elif event_type == "sentence":
+                                        sentence_text = data.get("text", "")
+                                        print(f" 💬 [Voice Stream] AI: {sentence_text}")
+                                        
+                                        if current_sim:
+                                            # Append sentence to memory incrementally
+                                            trans = current_sim["transcript"]
+                                            if trans and trans[-1]["role"] == "assistant":
+                                                trans[-1]["content"] += " " + sentence_text
+                                            else:
+                                                trans.append({"role": "assistant", "content": sentence_text, "timestamp": str(datetime.now())})
+                                        
+                                        # Synthesize TTS for this sentence immediately
+                                        if tts_voice and sentence_text:
+                                            try:
+                                                tts_wav_path = tempfile.mktemp(suffix=".wav")
+                                                with wave.open(tts_wav_path, "wb") as wav_file:
+                                                    tts_voice.synthesize_wav(sentence_text, wav_file)
+                                                
+                                                with open(tts_wav_path, "rb") as f:
+                                                    tts_wav_data = f.read()
+                                                os.unlink(tts_wav_path)
+                                                
+                                                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as src:
+                                                    src.write(tts_wav_data)
+                                                    src_path = src.name
+                                                webm_out = src_path.replace(".wav", ".webm")
+                                                subprocess.run(
+                                                    ["ffmpeg", "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
+                                                    capture_output=True, timeout=10
+                                                )
+                                                os.unlink(src_path)
+                                                if os.path.exists(webm_out):
+                                                    with open(webm_out, "rb") as f:
+                                                        webm_data = f.read()
+                                                    os.unlink(webm_out)
+                                                    tts_b64 = base64.b64encode(webm_data).decode("utf-8")
+                                                    
+                                                    # Broadcast audio chunk
+                                                    await manager.broadcast(json.dumps({
+                                                        "event": "tts_audio",
+                                                        "chunk": tts_b64,
+                                                        "phone": phone
+                                                    }))
+                                            except Exception as tts_err:
+                                                print(f" ⚠️ [TTS Sub-chunk Error]: {tts_err}")
+                                                
+                                        # Broadcast text chunk to Live Dashboard
+                                        await manager.broadcast(json.dumps({
+                                            "event": "ai_streaming_chunk",
+                                            "id": call_id,
+                                            "text_chunk": sentence_text,
+                                            "phone": phone
+                                        }))
+                                        
+                                    elif event_type == "final_meta":
+                                        clean_response = data.get("response", "")
+                                        location_extracted = data.get("location_extracted", "")
+                                        dispatched_services = data.get("dispatched_services", [])
+                                        end_call_flag = data.get("end_call", False)
+                                        emotion = current_sim["emotion"] if current_sim else "Neutral"
+                                        
+                                        if current_sim:
+                                            # We already appended individual fragments in 'sentence' event
+                                            # Do NOT append clean_response here or it doubles the transcript
+                                            if location_extracted:
+                                                current_sim["location"] = location_extracted
+                                            if dispatched_services:
+                                                current_sim["dispatched_services"] = current_sim.get("dispatched_services", []) + dispatched_services
+                                                current_sim["dispatched"] = True
+                                                
+                                        # Broadcast final meta update
+                                        now_iso = str(datetime.now())
                                         await manager.broadcast(json.dumps({
                                             "event": "ai_response",
                                             "id": call_id,
                                             "user_text": "",
-                                            "text": clean_response,
+                                            "text": "",  # Streaming already handled the text, don't duplicate it
                                             "phone": phone,
                                             "emotion": emotion,
                                             "location": location_extracted if location_extracted else None,
                                             "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown",
                                             "dispatched_services": dispatched_services,
                                             "end_call": end_call_flag,
+                                            "end_time": now_iso if end_call_flag else None,
                                             "severity": "RESOLVED" if (current_sim and current_sim.get("dispatched")) else ("UNRESOLVED" if end_call_flag else None)
                                         }))
                                         
-                                        # Handle end_call — SAME DB save + archive as chat page
+                                        # Handle end_call DB save
                                         if end_call_flag and current_sim:
                                             was_dispatched = current_sim.get("dispatched", False)
                                             call_severity = "RESOLVED" if was_dispatched else "UNRESOLVED"
@@ -480,14 +591,16 @@ async def websocket_endpoint(websocket: WebSocket):
                                                     dispatched_services=dispatched_list,
                                                     call_id=call_id,
                                                     latitude=current_sim.get("latitude"),
-                                                    longitude=current_sim.get("longitude")
+                                                    longitude=current_sim.get("longitude"),
+                                                    started_at=current_sim.get("start_time"),
+                                                    ended_by="AI" if end_call_flag else "Caller"
                                                 )
                                                 print(f" 💾 [Voice] Call Saved to DB: {saved_id} | Severity: {call_severity}")
                                                 
                                                 if phone in app.active_simulations:
                                                     del app.active_simulations[phone]
                                                 
-                                                # Broadcast DB Update — SAME as chat page
+                                                # Broadcast DB Update
                                                 try:
                                                     recent_calls = db.get_recent_calls()
                                                     formatted_calls_db = {}
@@ -500,6 +613,10 @@ async def websocket_endpoint(websocket: WebSocket):
                                                             "location_name": row["caller_location"] or "Unknown",
                                                             "city_state": row["caller_city_state"] if "caller_city_state" in row.keys() and row["caller_city_state"] else "Unknown",
                                                             "time": row["ended_at"] or str(datetime.now()),
+                                                            "started_at": row["started_at"],
+                                                            "ended_at": row["ended_at"],
+                                                            "duration_seconds": row["duration_seconds"],
+                                                            "ended_by": row["ended_by"] or "Unknown",
                                                             "emotions": [{"emotion": row["detected_emotion"] or "Neutral", "intensity": 0.8}],
                                                             "phone": row["caller_phone"] if "caller_phone" in row.keys() and row["caller_phone"] else "Unknown",
                                                             "transcript": t, "severity": row_severity, "type": "Emergency",
@@ -512,54 +629,18 @@ async def websocket_endpoint(websocket: WebSocket):
                                                     print(f" ⚠️ [Voice] DB broadcast failed: {e}")
                                             except Exception as e:
                                                 print(f" ⚠️ [Voice] DB save failed: {e}")
-                                            
-                                            return  # End the batch processor loop — call is over
                                         
-                                        # Phase 6: Generate TTS audio and send back to phone page
-                                        if tts_voice and clean_response:
-                                            try:
-                                                tts_wav_path = tempfile.mktemp(suffix=".wav")
-                                                with wave.open(tts_wav_path, "wb") as wav_file:
-                                                    tts_voice.synthesize_wav(clean_response, wav_file)
-                                                
-                                                with open(tts_wav_path, "rb") as f:
-                                                    tts_wav_data = f.read()
-                                                os.unlink(tts_wav_path)
-                                                
-                                                # Convert WAV to WebM/opus for browser playback
-                                                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as src:
-                                                    src.write(tts_wav_data)
-                                                    src_path = src.name
-                                                webm_out = src_path.replace(".wav", ".webm")
-                                                subprocess.run(
-                                                    ["ffmpeg", "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
-                                                    capture_output=True, timeout=10
-                                                )
-                                                os.unlink(src_path)
-                                                
-                                                if os.path.exists(webm_out):
-                                                    with open(webm_out, "rb") as f:
-                                                        webm_data = f.read()
-                                                    os.unlink(webm_out)
-                                                    
-                                                    tts_b64 = base64.b64encode(webm_data).decode("utf-8")
-                                                    await manager.broadcast(json.dumps({
-                                                        "event": "tts_audio",
-                                                        "chunk": tts_b64,
-                                                        "phone": phone
-                                                    }))
-                                                    print(f" 🔊 [TTS] Sent {len(webm_data)} bytes of audio")
-                                                else:
-                                                    print(f" ⚠️ [TTS] ffmpeg conversion failed")
-                                            except Exception as tts_err:
-                                                print(f" ⚠️ [TTS] Error: {tts_err}")
-                                        
-                                    except Exception as e:
-                                        print(f" ❌ [Voice] Pipeline error: {e}")
-                                        import traceback
-                                        traceback.print_exc()
-                            
-                            websocket._audio_timer_task = asyncio.create_task(batch_audio_processor())
+                        except Exception as e:
+                            print(f" ⚠️ [Voice Stream Error]: {e}")
+                            continue
+                        
+                        continue
+                        
+                except Exception as e:
+                    print(f" ❌ [Voice] Pipeline error: {e}")
+                    import traceback
+                    traceback.print_exc()
+
                 continue
                 
             # --- AI PROCESSING ---
@@ -591,6 +672,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         "city_state": row["caller_city_state"] if "caller_city_state" in row.keys() and row["caller_city_state"] else "Unknown",
                         "location_coords": {"lat": row["latitude"], "lng": row["longitude"]} if "latitude" in row.keys() and row["latitude"] is not None and "longitude" in row.keys() and row["longitude"] is not None else None,
                         "time": row["ended_at"] or str(datetime.now()),
+                        "started_at": row["started_at"],
+                        "ended_at": row["ended_at"],
+                        "duration_seconds": row["duration_seconds"] if "duration_seconds" in row.keys() else 0,
+                        "ended_by": row["ended_by"] if "ended_by" in row.keys() else "Unknown",
                         "emotions": [{"emotion": row["detected_emotion"] or "Neutral", "intensity": 0.8}],
                         "phone": row["caller_phone"] if "caller_phone" in row.keys() and row["caller_phone"] else "Unknown",
                         "transcript": transcript,
@@ -738,7 +823,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     dispatched_services=dispatched_list,
                     call_id=call_id,
                     latitude=current_sim.get("latitude"),
-                    longitude=current_sim.get("longitude")
+                    longitude=current_sim.get("longitude"),
+                    started_at=current_sim.get("start_time"),
+                    ended_by="Caller"
                 )
                 print(f" 💾 [Voice] Disconnect → Saved to DB: {saved_id} | Severity: {call_severity}")
                 del app.active_simulations[phone]

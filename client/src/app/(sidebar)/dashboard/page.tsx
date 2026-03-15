@@ -111,11 +111,8 @@ export default function Dashboard() {
 
     return (
         <div className="flex h-screen w-full bg-slate-950 text-slate-200 selection:bg-blue-500/30 font-sans">
-            <div className="flex h-full w-full p-2">
-                <Sidebar />
-
-                <div className="flex flex-1 flex-col space-y-1 ml-1 overflow-hidden">
-                    {/* Header */}
+            <div className="flex flex-1 flex-col space-y-1 ml-1 overflow-hidden">
+                {/* Header */}
                     <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 shadow-xl shrink-0">
                         <header className="flex h-16 items-center px-6 backdrop-blur">
                             <h1 className="text-xl font-bold uppercase tracking-wider text-blue-400">Command Dashboard</h1>
@@ -222,7 +219,6 @@ export default function Dashboard() {
 
                     </div>
                 </div>
-            </div>
         </div>
     );
 }

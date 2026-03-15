@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-
-import Sidebar from "../../components/live/Sidebar";
+import Sidebar from "@/components/live/Sidebar";
 
 export const metadata: Metadata = {
-    title: "Archive - EAEDS Control",
-    description: "Historical Call Records",
-    icons: [{ rel: "icon", url: "/favicon.ico" }],
+    title: "EAEDS Dashboard",
+    description: "Emotion-Aware Emergency Dispatch System",
 };
 
-export default function RootLayout({
+export default function SidebarLayout({
     children,
 }: {
     children: React.ReactNode;

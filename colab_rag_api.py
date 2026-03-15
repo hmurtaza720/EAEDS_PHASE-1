@@ -26,16 +26,29 @@ from datetime import datetime
 from typing import List, Optional, Dict
 
 from unsloth import FastLanguageModel
+from transformers import TextIteratorStreamer
 from sentence_transformers import SentenceTransformer
 from faster_whisper import WhisperModel
 import opensmile
+from threading import Thread
+import asyncio
 
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from pyngrok import ngrok
 import uvicorn
 import nest_asyncio
+import logging
+import warnings
+
+# Suppress noisy library warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+
+# Silence transformers and other noisy loggers to prevent formatting crashes
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("unsloth").setLevel(logging.ERROR)
 
 # ================================================
 #  CONFIG
@@ -123,8 +136,27 @@ build_knowledge_base("Call 1: Fire reported at Main St. Dispatcher sent Fire Dep
 
 def transcribe_audio(audio_path: str) -> str:
     """Run Faster-Whisper on an audio file and return the transcript."""
-    segments, info = whisper_model.transcribe(audio_path, beam_size=5, language="en")
+    # initial_prompt helps bias the STT towards 911/Emergency context
+    segments, info = whisper_model.transcribe(
+        audio_path, 
+        beam_size=1, 
+        language="en",
+        vad_filter=True,
+        vad_parameters=dict(min_silence_duration_ms=500),
+        initial_prompt="Emergency 911 call. Fire, police, medical. Address, emergency situation."
+    )
     transcript = " ".join([seg.text.strip() for seg in segments])
+    
+    # Robust hallucination filtering
+    h_patterns = [
+        r"^thank you", r"^thanks for watching", r"^bye$", r"^you$", r"^i'm sorry",
+        r"^subtitles by", r"^please subscribe", r"^skii-", r"^\.$"
+    ]
+    for pattern in h_patterns:
+        if re.search(pattern, transcript.strip().lower()):
+            print(f"  ⏭️ [Pipeline] Whisper hallucination detected ('{transcript}') — skipping.")
+            return ""
+
     print(f"  🎤 [STT] Transcript: {transcript}")
     return transcript
 
@@ -284,6 +316,9 @@ Your response: "You're welcome. Stay safe. Goodbye. <ACTION>END_CALL</ACTION>"
         **inputs,
         max_new_tokens=128,
         use_cache=True,
+        repetition_penalty=1.2,
+        temperature=0.7,
+        do_sample=True,
         pad_token_id=tokenizer.eos_token_id
     )
     generated_text = tokenizer.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)[0]
@@ -329,6 +364,147 @@ Your response: "You're welcome. Stay safe. Goodbye. <ACTION>END_CALL</ACTION>"
         "dispatched_services": dispatched_services,
         "end_call": end_call_flag
     }
+
+
+async def generate_llm_stream(text: str, emotion: str, phone: str, city: str, state: str):
+    """Async generator yielding JSON lines for each sentence and final metadata."""
+    global active_calls
+    
+    if phone not in active_calls:
+        active_calls[phone] = []
+        
+    context_list = retrieve_context(text)
+    context_text = "\n".join([f"- {c}" for c in context_list])
+    
+    system_prompt = f"""### ROLE
+You are a highly professional 911 Dispatcher in {city}, {state}. The caller sounds {emotion}.
+Your goal is to save lives by being calm, efficient, and direct.
+
+### PROTOCOL
+1.  **Professionalism**: Stay in character. Never be snarky or judgmental. 
+2.  **Brevity**: Under 12 words. No "I see," "Okay," or filler.
+3.  **Clarity**: If the caller is unintelligible, say: "I didn't catch that. Please repeat your emergency."
+4.  **Prioritization**: Location is #1 priority. Dispatch is #2. Instructions are #3.
+
+### RETRIEVED HISTORY
+{context_text}
+
+### OUTPUT TAGS
+<ACTION>UPDATE_MAP: [Address]</ACTION>
+<ACTION>DISPATCH: [Fire, Police, EMS]</ACTION>
+<ACTION>END_CALL</ACTION>
+
+### RULES
+- STOP after your response.
+- Use TAGS the moment you have the info."""
+
+    history_str = "".join(active_calls[phone][-6:])
+    current_turn = f"<|start_header_id|>user<|end_header_id|>\n\nCaller: {text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+    prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>{history_str}{current_turn}"
+
+    inputs = tokenizer([prompt], return_tensors="pt").to("cuda")
+    streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+    generation_kwargs = dict(
+        **inputs,
+        streamer=streamer,
+        max_new_tokens=128,
+        use_cache=True,
+        repetition_penalty=1.2,
+        temperature=0.7,
+        do_sample=True,
+        pad_token_id=tokenizer.eos_token_id
+    )
+    thread = Thread(target=model.generate, kwargs=generation_kwargs)
+    thread.start()
+
+    full_generated_text = ""
+    sentence_buffer = ""
+    yielded_sentences = set() # Local per-turn deduplication
+    
+    # delimiters to split sentences
+    punctuations = [". ", "! ", "? ", ".\n", "!\n", "?\n"]
+
+    for new_text in streamer:
+        full_generated_text += new_text
+        sentence_buffer += new_text
+        
+        # Check if we have a sentence boundary
+        for p in punctuations:
+            if p in sentence_buffer:
+                parts = sentence_buffer.split(p, 1)
+                sentence = parts[0] + p.strip()
+                sentence_buffer = parts[1] if len(parts) > 1 else ""
+                
+                # Check for action tags or duplicates or accidental metadata leak
+                clean_sentence = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', sentence, flags=re.IGNORECASE | re.DOTALL).strip()
+                if clean_sentence and "Dispatcher:" not in clean_sentence and "Caller:" not in clean_sentence:
+                    # Filter out loose metadata or punctuation-only fragments
+                    is_pure_logic = any(kw in clean_sentence.upper() for kw in ["DISPATCH:", "UPDATE_MAP:", "END_CALL"])
+                    has_content = len(re.sub(r'[^\w\s]', '', clean_sentence).strip()) > 0
+                    
+                    if not is_pure_logic and has_content:
+                        if clean_sentence.lower() not in yielded_sentences:
+                            yielded_sentences.add(clean_sentence.lower())
+                            yield json.dumps({"event": "sentence", "text": clean_sentence}) + "\n"
+        
+        # small sleep to allow other async ops
+        await asyncio.sleep(0.01)
+
+    # Any remaining text in buffer
+    if sentence_buffer.strip():
+        clean_sentence = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', sentence_buffer, flags=re.IGNORECASE | re.DOTALL).strip()
+        if clean_sentence and "Dispatcher:" not in clean_sentence and "Caller:" not in clean_sentence:
+            is_pure_logic = any(kw in clean_sentence.upper() for kw in ["DISPATCH:", "UPDATE_MAP:", "END_CALL"])
+            has_content = len(re.sub(r'[^\w\s]', '', clean_sentence).strip()) > 0
+            
+            if not is_pure_logic and has_content:
+                if clean_sentence.lower() not in yielded_sentences:
+                    yielded_sentences.add(clean_sentence.lower())
+                    yield json.dumps({"event": "sentence", "text": clean_sentence}) + "\n"
+
+    # Remove hallucinated speakers if they appeared
+    full_generated_text = full_generated_text.split("Caller:")[0].strip()
+    full_generated_text = full_generated_text.split("Dispatcher:")[0].strip()
+
+    # Post process tags
+    location_extracted = ""
+    dispatched_services = []
+
+    map_match = re.search(r'<ACTION>\s*UPDATE_MAP:\s*(.*?)(?:</ACTION>|$)', full_generated_text, re.IGNORECASE | re.DOTALL)
+    if not map_match:
+        map_match = re.search(r'UPDATE_MAP:\s*(.+?)(?:\.|$)', full_generated_text, re.IGNORECASE)
+    if map_match:
+        location_extracted = map_match.group(1).strip().rstrip('.')
+
+    dispatch_match = re.search(r'<ACTION>\s*DISPATCH:\s*(.*?)(?:</ACTION>|$)', full_generated_text, re.IGNORECASE | re.DOTALL)
+    if not dispatch_match:
+        dispatch_match = re.search(r'DISPATCH:\s*(.+?)(?:\.|$)', full_generated_text, re.IGNORECASE)
+    if dispatch_match:
+        services_str = dispatch_match.group(1).strip().rstrip('.')
+        dispatched_services = [s.strip() for s in services_str.split(',')]
+
+    clean_response = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', full_generated_text, flags=re.IGNORECASE | re.DOTALL).strip()
+    clean_response = re.sub(r'UPDATE_MAP:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
+    clean_response = re.sub(r'DISPATCH:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
+    clean_response = re.sub(r'END_CALL\b', '', clean_response, flags=re.IGNORECASE).strip()
+    clean_response = re.sub(r'\s{2,}', ' ', clean_response).strip()
+
+    end_call_flag = bool(re.search(r'(?:<ACTION>\s*)?END_CALL\s*(?:</ACTION>|$)', full_generated_text, re.IGNORECASE))
+
+    # Save to memory
+    full_turn = f"<|start_header_id|>user<|end_header_id|>\n\nCaller: {text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n{clean_response}<|eot_id|>"
+    active_calls[phone].append(full_turn)
+
+    # Yield final metadata
+    final_data = {
+        "event": "final_meta",
+        "response": clean_response,
+        "context_used": context_list,
+        "location_extracted": location_extracted,
+        "dispatched_services": dispatched_services,
+        "end_call": end_call_flag
+    }
+    yield json.dumps(final_data) + "\n"
 
 
 # ================================================
@@ -381,8 +557,8 @@ async def generate_response(req: ChatRequest):
 
 # ---- NEW: Voice Pipeline Endpoint ----
 
-@app.post("/process-voice")
-async def process_voice(
+@app.post("/stream-voice")
+async def stream_voice(
     audio: UploadFile = File(...),
     phone_number: str = Form(...),
     city: str = Form("Unknown City"),
@@ -390,8 +566,8 @@ async def process_voice(
     reset: str = Form("false"),
 ):
     """
-    Full voice pipeline: Audio → STT → Emotion → Threat Check → LLM Response.
-    Accepts a WAV audio file and returns the full pipeline result.
+    Full voice streaming pipeline.
+    Accepts audio, yields Transcript immediately, then streams sentences, then metadata.
     """
     start_time = datetime.now()
     should_reset = reset.lower() == "true"
@@ -399,20 +575,21 @@ async def process_voice(
     if should_reset and phone_number in active_calls:
         active_calls[phone_number] = []
     
-    # Save uploaded audio to temp file
     audio_bytes = await audio.read()
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         tmp.write(audio_bytes)
         tmp_path = tmp.name
     
     print(f"\n{'='*60}")
-    print(f"📞 [VOICE PIPELINE] Processing audio for {phone_number}")
+    print(f"📞 [VOICE PIPELINE] Streaming audio for {phone_number}")
     print(f"{'='*60}")
     
-    # ---- STEP 1: Speech-to-Text (Faster-Whisper) ----
-    transcript = transcribe_audio(tmp_path)
+    # Run STT and Emotion Extraction concurrently to reduce latency
+    transcript_task = asyncio.to_thread(transcribe_audio, tmp_path)
+    emotion_task = asyncio.to_thread(extract_emotion_from_audio, tmp_path)
     
-    # Filter common Whisper hallucinations on silence
+    transcript, emotion = await asyncio.gather(transcript_task, emotion_task)
+    
     hallucinations = ["thank you.", "thank you", "thanks for watching.", "thanks for watching", "bye.", "bye"]
     if transcript and transcript.strip().lower() in hallucinations:
         print(f"  ⏭️ [Pipeline] Whisper hallucination detected ('{transcript.strip()}') — skipping.")
@@ -421,62 +598,44 @@ async def process_voice(
     if not transcript or len(transcript.strip()) < 2:
         print("  ⏭️ [Pipeline] Empty transcript — skipping.")
         os.unlink(tmp_path)
-        return {
-            "transcript": "",
-            "emotion": "Neutral",
-            "threat_classification": {"is_threat": False, "classification": "silence", "confidence": 0.95},
-            "response": "",
-            "location_extracted": "",
-            "dispatched_services": [],
-            "end_call": False,
-            "pipeline_ms": 0
-        }
-    
-    # ---- STEP 2: Emotion from Audio (OpenSMILE) ----
-    emotion = extract_emotion_from_audio(tmp_path)
-    
-    # Clean up temp file
+        async def empty_generator():
+            yield json.dumps({
+                "event": "final_meta", "response": "", "context_used": [],
+                "location_extracted": "", "dispatched_services": [], "end_call": False,
+                "transcript": ""
+            }) + "\n"
+        return StreamingResponse(empty_generator(), media_type="text/event-stream")
+
     os.unlink(tmp_path)
     
-    # ---- STEP 3: Threat Classification ----
     threat_result = classify_threat(transcript, emotion)
     print(f"  🛡️ [Threat] {threat_result['classification']} (threat={threat_result['is_threat']}, conf={threat_result['confidence']:.2f})")
     
-    # ---- STEP 4: LLM Response (only if threat detected) ----
-    if threat_result["is_threat"]:
-        llm_result = generate_llm_response(
-            text=transcript,
-            emotion=emotion,
-            phone=phone_number,
-            city=city,
-            state=state
-        )
-    else:
-        # For prank/silence, provide a generic response
-        llm_result = {
-            "response": "This line is for emergencies only. If you have a real emergency, please describe it.",
-            "context_used": [],
-            "location_extracted": "",
-            "dispatched_services": [],
-            "end_call": False
-        }
-    
-    elapsed_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-    print(f"  ⏱️ [Pipeline] Total time: {elapsed_ms}ms")
-    print(f"  💬 [Response] {llm_result['response'][:100]}...")
-    
-    return {
-        "transcript": transcript,
-        "emotion": emotion,
-        "threat_classification": threat_result,
-        "response": llm_result["response"],
-        "context_used": llm_result["context_used"],
-        "call_id": phone_number,
-        "location_extracted": llm_result["location_extracted"],
-        "dispatched_services": llm_result["dispatched_services"],
-        "end_call": llm_result["end_call"],
-        "pipeline_ms": elapsed_ms
-    }
+    async def pipeline_generator():
+        # 1. Yield Transcript & Emotion immediately
+        yield json.dumps({
+            "event": "start_turn",
+            "transcript": transcript,
+            "emotion": emotion,
+            "threat": threat_result
+        }) + "\n"
+        
+        # 2. Stream Sentences
+        if threat_result["is_threat"]:
+            async for chunk in generate_llm_stream(transcript, emotion, phone_number, city, state):
+                yield chunk
+        else:
+            fake_res = "This line is for emergencies only. If you have a real emergency, please describe it."
+            yield json.dumps({"event": "sentence", "text": fake_res}) + "\n"
+            yield json.dumps({
+                "event": "final_meta", "response": fake_res, "context_used": [],
+                "location_extracted": "", "dispatched_services": [], "end_call": False
+            }) + "\n"
+            
+        elapsed_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        print(f"  ⏱️ [Pipeline] Total streaming time: {elapsed_ms}ms")
+            
+    return StreamingResponse(pipeline_generator(), media_type="text/event-stream")
 
 
 # ================================================
