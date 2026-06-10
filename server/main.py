@@ -1,4 +1,14 @@
 import os
+import sys
+
+# Configure console output to handle UTF-8/emojis without UnicodeEncodeError on Windows
+if sys.platform.startswith("win"):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 import asyncio
 import base64
 import subprocess
@@ -18,7 +28,7 @@ app = FastAPI(title="EAEDS Control")
 
 @app.get("/chat", response_class=HTMLResponse)
 async def serve_chat_page():
-    with open("templates/chat_test.html", "r") as f:
+    with open("templates/chat_test.html", "r", encoding="utf-8") as f:
         return f.read()
 
 # CORS (Allow Frontend to talk to Backend)
@@ -31,20 +41,21 @@ app.add_middleware(
 )
 
 # Initialize the Brain
+from server.ai_engine import LocalAIService, MockAIService
 ai_service = None
 
 if AI_MODE == "LOCAL":
     print(" 🧠 [SYSTEM] Booting AI in LOCAL Mode (On-Premise GPU)...")
-    # In future, this will import LocalAIService
-    # ai_service = LocalAIService()
-    # Temporary fallback until Local Class is ready
-    ai_service = MockAIService()
-    print(" ⚠️ [NOTICE] Local Service class not found, falling back to MOCK for stability.")
+    try:
+        ai_service = LocalAIService()
+    except Exception as e:
+        print(f" ⚠️ [ERROR] Failed to boot LocalAIService: {e}")
+        ai_service = MockAIService()
+        print(" ⚠️ [NOTICE] Falling back to MOCK for stability.")
 
 else:
     print(" 🧠 [SYSTEM] Booting AI in MOCK Mode (CPU Simulation)...")
     # Using Mock Service for Dev/Testing to save API costs
-    from server.ai_engine.mock_service import MockAIService
     ai_service = MockAIService()
 # Initialize Database
 db = DatabaseManager()
@@ -420,219 +431,380 @@ async def websocket_endpoint(websocket: WebSocket):
                     os.unlink(webm_path)
                     print(f" ✅ [Voice] ffmpeg → {wav_path}")
 
-                    # Read WAV and send to Colab
-                    COLAB_API_URL = "https://maryjo-prerational-deann.ngrok-free.dev"
-                    
-                    with open(wav_path, "rb") as f:
-                        wav_data = f.read()
-                    os.unlink(wav_path)
-
-                    print(f" 📤 [Voice] Sending {len(wav_data)} bytes WAV to Colab...")
-                    async with httpx.AsyncClient() as client:
-                        files = {"audio": ("recording.wav", wav_data, "audio/wav")}
-                        form_data = {
-                            "phone_number": phone,
-                            "city": city,
-                            "state": state,
-                            "reset": "false"
-                        }
-                        
+                    # Process audio
+                    if AI_MODE == "LOCAL":
+                        print(f" 🧠 [Voice] Running local AI voice pipeline...")
+                        current_sim = None
+                        if hasattr(app, 'active_simulations'):
+                            current_sim = app.active_simulations.get(phone)
+                            
                         try:
-                            async with client.stream("POST", f"{COLAB_API_URL}/stream-voice", data=form_data, files=files, timeout=60.0) as resp:
-                                if resp.status_code != 200:
-                                    await resp.aread()
-                                    print(f" ⚠️ [Voice] Colab returned {resp.status_code}: {resp.text[:200]}")
+                            # ai_service.process_audio returns an async generator yielding JSON strings
+                            async for line in ai_service.process_audio(wav_path, phone, city, state):
+                                if not line or not line.strip():
+                                    continue
+                                try:
+                                    data = json.loads(line)
+                                except Exception:
                                     continue
                                     
-                                current_sim = None
-                                if hasattr(app, 'active_simulations'):
-                                    current_sim = app.active_simulations.get(phone)
-
-                                async for line in resp.aiter_lines():
-                                    if not line or not line.strip():
+                                event_type = data.get("event")
+                                if event_type == "start_turn":
+                                    transcript_text = data.get("transcript", "")
+                                    emotion = data.get("emotion", "Neutral")
+                                    if not transcript_text:
+                                        print(f" ⏭️ [Voice] Empty transcript — skipping broadcast.")
                                         continue
                                         
-                                    try:
-                                        data = json.loads(line)
-                                    except Exception:
-                                        continue
-                                        
-                                    event_type = data.get("event")
+                                    print(f" 🎤 [Voice] Transcript: {transcript_text}")
+                                    print(f" 😶 [Voice] Emotion: {emotion}")
                                     
-                                    if event_type == "start_turn":
-                                        transcript_text = data.get("transcript", "")
-                                        emotion = data.get("emotion", "Neutral")
+                                    if current_sim:
+                                        current_sim["transcript"].append({"role": "user", "content": transcript_text, "timestamp": str(datetime.now())})
+                                        current_sim["emotion"] = emotion
                                         
-                                        if not transcript_text:
-                                            print(f" ⏭️ [Voice] Empty transcript — skipping broadcast.")
-                                            continue
+                                    # Broadcast user text purely to update UI with what they just said
+                                    await manager.broadcast(json.dumps({
+                                        "event": "ai_response",
+                                        "id": call_id,
+                                        "user_text": transcript_text,
+                                        "text": "",
+                                        "phone": phone,
+                                        "emotion": emotion,
+                                        "location": None,
+                                        "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown"
+                                    }))
+                                    
+                                elif event_type == "sentence":
+                                    sentence_text = data.get("text", "")
+                                    tts_b64 = data.get("audio", "")
+                                    print(f" 💬 [Voice Stream] AI: {sentence_text}")
+                                    
+                                    if current_sim:
+                                        # Append sentence to memory incrementally
+                                        trans = current_sim["transcript"]
+                                        if trans and trans[-1]["role"] == "assistant":
+                                            trans[-1]["content"] += " " + sentence_text
+                                        else:
+                                            trans.append({"role": "assistant", "content": sentence_text, "timestamp": str(datetime.now())})
                                             
-                                        print(f" 🎤 [Voice] Transcript: {transcript_text}")
-                                        print(f" 😶 [Voice] Emotion: {emotion}")
-                                        
-                                        if current_sim:
-                                            current_sim["transcript"].append({"role": "user", "content": transcript_text, "timestamp": str(datetime.now())})
-                                            current_sim["emotion"] = emotion
-                                            
-                                        # Broadcast user text purely to update UI with what they just said
+                                    if tts_b64:
+                                        # Broadcast audio chunk
                                         await manager.broadcast(json.dumps({
-                                            "event": "ai_response",
-                                            "id": call_id,
-                                            "user_text": transcript_text,
-                                            "text": "",
-                                            "phone": phone,
-                                            "emotion": emotion,
-                                            "location": None,
-                                            "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown"
-                                        }))
-                                        
-                                    elif event_type == "sentence":
-                                        sentence_text = data.get("text", "")
-                                        print(f" 💬 [Voice Stream] AI: {sentence_text}")
-                                        
-                                        if current_sim:
-                                            # Append sentence to memory incrementally
-                                            trans = current_sim["transcript"]
-                                            if trans and trans[-1]["role"] == "assistant":
-                                                trans[-1]["content"] += " " + sentence_text
-                                            else:
-                                                trans.append({"role": "assistant", "content": sentence_text, "timestamp": str(datetime.now())})
-                                        
-                                        # Synthesize TTS for this sentence immediately
-                                        if tts_voice and sentence_text:
-                                            try:
-                                                tts_wav_path = tempfile.mktemp(suffix=".wav")
-                                                with wave.open(tts_wav_path, "wb") as wav_file:
-                                                    tts_voice.synthesize_wav(sentence_text, wav_file)
-                                                
-                                                with open(tts_wav_path, "rb") as f:
-                                                    tts_wav_data = f.read()
-                                                os.unlink(tts_wav_path)
-                                                
-                                                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as src:
-                                                    src.write(tts_wav_data)
-                                                    src_path = src.name
-                                                webm_out = src_path.replace(".wav", ".webm")
-                                                subprocess.run(
-                                                    ["ffmpeg", "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
-                                                    capture_output=True, timeout=10
-                                                )
-                                                os.unlink(src_path)
-                                                if os.path.exists(webm_out):
-                                                    with open(webm_out, "rb") as f:
-                                                        webm_data = f.read()
-                                                    os.unlink(webm_out)
-                                                    tts_b64 = base64.b64encode(webm_data).decode("utf-8")
-                                                    
-                                                    # Broadcast audio chunk
-                                                    await manager.broadcast(json.dumps({
-                                                        "event": "tts_audio",
-                                                        "chunk": tts_b64,
-                                                        "phone": phone
-                                                    }))
-                                            except Exception as tts_err:
-                                                print(f" ⚠️ [TTS Sub-chunk Error]: {tts_err}")
-                                                
-                                        # Broadcast text chunk to Live Dashboard
-                                        await manager.broadcast(json.dumps({
-                                            "event": "ai_streaming_chunk",
-                                            "id": call_id,
-                                            "text_chunk": sentence_text,
+                                            "event": "tts_audio",
+                                            "chunk": tts_b64,
                                             "phone": phone
                                         }))
                                         
-                                    elif event_type == "final_meta":
-                                        clean_response = data.get("response", "")
-                                        location_extracted = data.get("location_extracted", "")
-                                        dispatched_services = data.get("dispatched_services", [])
-                                        end_call_flag = data.get("end_call", False)
-                                        emotion = current_sim["emotion"] if current_sim else "Neutral"
-                                        
-                                        if current_sim:
-                                            # We already appended individual fragments in 'sentence' event
-                                            # Do NOT append clean_response here or it doubles the transcript
-                                            if location_extracted:
-                                                current_sim["location"] = location_extracted
-                                            if dispatched_services:
-                                                current_sim["dispatched_services"] = current_sim.get("dispatched_services", []) + dispatched_services
-                                                current_sim["dispatched"] = True
-                                                
-                                        # Broadcast final meta update
-                                        now_iso = str(datetime.now())
-                                        await manager.broadcast(json.dumps({
-                                            "event": "ai_response",
-                                            "id": call_id,
-                                            "user_text": "",
-                                            "text": "",  # Streaming already handled the text, don't duplicate it
-                                            "phone": phone,
-                                            "emotion": emotion,
-                                            "location": location_extracted if location_extracted else None,
-                                            "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown",
-                                            "dispatched_services": dispatched_services,
-                                            "end_call": end_call_flag,
-                                            "end_time": now_iso if end_call_flag else None,
-                                            "severity": "RESOLVED" if (current_sim and current_sim.get("dispatched")) else ("UNRESOLVED" if end_call_flag else None)
-                                        }))
-                                        
-                                        # Handle end_call DB save
-                                        if end_call_flag and current_sim:
-                                            was_dispatched = current_sim.get("dispatched", False)
-                                            call_severity = "RESOLVED" if was_dispatched else "UNRESOLVED"
-                                            dispatched_list = ",".join(set(current_sim.get("dispatched_services", [])))
+                                    # Broadcast text chunk to Live Dashboard
+                                    await manager.broadcast(json.dumps({
+                                        "event": "ai_streaming_chunk",
+                                        "id": call_id,
+                                        "text_chunk": sentence_text,
+                                        "phone": phone
+                                    }))
+                                    
+                                elif event_type == "final_meta":
+                                    clean_response = data.get("response", "")
+                                    location_extracted = data.get("location_extracted", "")
+                                    dispatched_services = data.get("dispatched_services", [])
+                                    end_call_flag = data.get("end_call", False)
+                                    emotion = current_sim["emotion"] if current_sim else "Neutral"
+                                    
+                                    if current_sim:
+                                        if location_extracted:
+                                            current_sim["location"] = location_extracted
+                                        if dispatched_services:
+                                            current_sim["dispatched_services"] = current_sim.get("dispatched_services", []) + dispatched_services
+                                            current_sim["dispatched"] = True
                                             
-                                            try:
-                                                saved_id = db.save_call(
-                                                    transcript_list=current_sim["transcript"],
-                                                    emotion=current_sim["emotion"],
-                                                    location=current_sim["location"],
-                                                    phone=phone,
-                                                    city_state=current_sim.get("city_state", "Unknown"),
-                                                    severity=call_severity,
-                                                    dispatched_services=dispatched_list,
-                                                    call_id=call_id,
-                                                    latitude=current_sim.get("latitude"),
-                                                    longitude=current_sim.get("longitude"),
-                                                    started_at=current_sim.get("start_time"),
-                                                    ended_by="AI" if end_call_flag else "Caller"
-                                                )
-                                                print(f" 💾 [Voice] Call Saved to DB: {saved_id} | Severity: {call_severity}")
-                                                
-                                                if phone in app.active_simulations:
-                                                    del app.active_simulations[phone]
-                                                
-                                                # Broadcast DB Update
-                                                try:
-                                                    recent_calls = db.get_recent_calls()
-                                                    formatted_calls_db = {}
-                                                    for row in recent_calls:
-                                                        try: t = json.loads(row["transcript"])
-                                                        except: t = []
-                                                        row_severity = row["severity"] if "severity" in row.keys() and row["severity"] else "RESOLVED"
-                                                        formatted_calls_db[row["id"]] = {
-                                                            "id": row["id"], "title": "Emergency Call", "name": "Caller",
-                                                            "location_name": row["caller_location"] or "Unknown",
-                                                            "city_state": row["caller_city_state"] if "caller_city_state" in row.keys() and row["caller_city_state"] else "Unknown",
-                                                            "time": row["ended_at"] or str(datetime.now()),
-                                                            "started_at": row["started_at"],
-                                                            "ended_at": row["ended_at"],
-                                                            "duration_seconds": row["duration_seconds"],
-                                                            "ended_by": row["ended_by"] or "Unknown",
-                                                            "emotions": [{"emotion": row["detected_emotion"] or "Neutral", "intensity": 0.8}],
-                                                            "phone": row["caller_phone"] if "caller_phone" in row.keys() and row["caller_phone"] else "Unknown",
-                                                            "transcript": t, "severity": row_severity, "type": "Emergency",
-                                                            "status": "Disconnected", "summary": f"Call ended with emotion: {row['detected_emotion']}",
-                                                            "responder_type": "AI",
-                                                            "dispatched_services": [s for s in (row["dispatched_services"].split(",") if "dispatched_services" in row.keys() and row["dispatched_services"] else []) if s]
-                                                        }
-                                                    await manager.broadcast(json.dumps({"event": "db_response", "data": formatted_calls_db}))
-                                                except Exception as e:
-                                                    print(f" ⚠️ [Voice] DB broadcast failed: {e}")
-                                            except Exception as e:
-                                                print(f" ⚠️ [Voice] DB save failed: {e}")
+                                    # Broadcast final meta update
+                                    now_iso = str(datetime.now())
+                                    await manager.broadcast(json.dumps({
+                                        "event": "ai_response",
+                                        "id": call_id,
+                                        "user_text": "",
+                                        "text": "",  # Streaming already handled the text
+                                        "phone": phone,
+                                        "emotion": emotion,
+                                        "location": location_extracted if location_extracted else None,
+                                        "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown",
+                                        "dispatched_services": dispatched_services,
+                                        "end_call": end_call_flag,
+                                        "end_time": now_iso if end_call_flag else None,
+                                        "severity": "RESOLVED" if (current_sim and current_sim.get("dispatched")) else ("UNRESOLVED" if end_call_flag else None)
+                                    }))
+                                    
+                                    # Handle end_call DB save
+                                    if end_call_flag and current_sim:
+                                        was_dispatched = current_sim.get("dispatched", False)
+                                        call_severity = "RESOLVED" if was_dispatched else "UNRESOLVED"
+                                        dispatched_list = ",".join(set(current_sim.get("dispatched_services", [])))
                                         
-                        except Exception as e:
-                            print(f" ⚠️ [Voice Stream Error]: {e}")
-                            continue
+                                        try:
+                                            saved_id = db.save_call(
+                                                transcript_list=current_sim["transcript"],
+                                                emotion=current_sim["emotion"],
+                                                location=current_sim["location"],
+                                                phone=phone,
+                                                city_state=current_sim.get("city_state", "Unknown"),
+                                                severity=call_severity,
+                                                dispatched_services=dispatched_list,
+                                                call_id=call_id,
+                                                latitude=current_sim.get("latitude"),
+                                                longitude=current_sim.get("longitude"),
+                                                started_at=current_sim.get("start_time"),
+                                                ended_by="AI" if end_call_flag else "Caller"
+                                            )
+                                            print(f" 💾 [Voice] Call Saved to DB: {saved_id} | Severity: {call_severity}")
+                                            
+                                            if phone in app.active_simulations:
+                                                del app.active_simulations[phone]
+                                            
+                                            # Broadcast DB Update
+                                            try:
+                                                recent_calls = db.get_recent_calls()
+                                                formatted_calls_db = {}
+                                                for row in recent_calls:
+                                                    try: t = json.loads(row["transcript"])
+                                                    except: t = []
+                                                    row_severity = row["severity"] if "severity" in row.keys() and row["severity"] else "RESOLVED"
+                                                    formatted_calls_db[row["id"]] = {
+                                                        "id": row["id"], "title": "Emergency Call", "name": "Caller",
+                                                        "location_name": row["caller_location"] or "Unknown",
+                                                        "city_state": row["caller_city_state"] if "caller_city_state" in row.keys() and row["caller_city_state"] else "Unknown",
+                                                        "time": row["ended_at"] or str(datetime.now()),
+                                                        "started_at": row["started_at"],
+                                                        "ended_at": row["ended_at"],
+                                                        "duration_seconds": row["duration_seconds"],
+                                                        "ended_by": row["ended_by"] or "Unknown",
+                                                        "emotions": [{"emotion": row["detected_emotion"] or "Neutral", "intensity": 0.8}],
+                                                        "phone": row["caller_phone"] if "caller_phone" in row.keys() and row["caller_phone"] else "Unknown",
+                                                        "transcript": t, "severity": row_severity, "type": "Emergency",
+                                                        "status": "Disconnected", "summary": f"Call ended with emotion: {row['detected_emotion']}",
+                                                        "responder_type": "AI",
+                                                        "dispatched_services": [s for s in (row["dispatched_services"].split(",") if "dispatched_services" in row.keys() and row["dispatched_services"] else []) if s]
+                                                    }
+                                                await manager.broadcast(json.dumps({"event": "db_response", "data": formatted_calls_db}))
+                                            except Exception as db_err:
+                                                print(f" ⚠️ [Voice] DB broadcast failed: {db_err}")
+                                        except Exception as db_err:
+                                            print(f" ⚠️ [Voice] DB save failed: {db_err}")
+                        except Exception as stream_err:
+                            print(f" ⚠️ [Voice Stream Error Local]: {stream_err}")
+                        finally:
+                            if os.path.exists(wav_path):
+                                os.unlink(wav_path)
+                                
+                    else:
+                        # Read WAV and send to Colab proxy
+                        COLAB_API_URL = "https://kiera-headmost-nonruinously.ngrok-free.dev"
+                        with open(wav_path, "rb") as f:
+                            wav_data = f.read()
+                        os.unlink(wav_path)
+
+                        print(f" 📤 [Voice] Sending {len(wav_data)} bytes WAV to Colab...")
+                        async with httpx.AsyncClient() as client:
+                            files = {"audio": ("recording.wav", wav_data, "audio/wav")}
+                            form_data = {
+                                "phone_number": phone,
+                                "city": city,
+                                "state": state,
+                                "reset": "false"
+                            }
+                            
+                            try:
+                                async with client.stream("POST", f"{COLAB_API_URL}/stream-voice", data=form_data, files=files, timeout=60.0) as resp:
+                                    if resp.status_code != 200:
+                                        await resp.aread()
+                                        print(f" ⚠️ [Voice] Colab returned {resp.status_code}: {resp.text[:200]}")
+                                        continue
+                                        
+                                    current_sim = None
+                                    if hasattr(app, 'active_simulations'):
+                                        current_sim = app.active_simulations.get(phone)
+
+                                    async for line in resp.aiter_lines():
+                                        if not line or not line.strip():
+                                            continue
+                                            
+                                        try:
+                                            data = json.loads(line)
+                                        except Exception:
+                                            continue
+                                            
+                                        event_type = data.get("event")
+                                        
+                                        if event_type == "start_turn":
+                                            transcript_text = data.get("transcript", "")
+                                            emotion = data.get("emotion", "Neutral")
+                                            
+                                            if not transcript_text:
+                                                print(f" ⏭️ [Voice] Empty transcript — skipping broadcast.")
+                                                continue
+                                                
+                                            print(f" 🎤 [Voice] Transcript: {transcript_text}")
+                                            print(f" 😶 [Voice] Emotion: {emotion}")
+                                            
+                                            if current_sim:
+                                                current_sim["transcript"].append({"role": "user", "content": transcript_text, "timestamp": str(datetime.now())})
+                                                current_sim["emotion"] = emotion
+                                                
+                                            # Broadcast user text purely to update UI with what they just said
+                                            await manager.broadcast(json.dumps({
+                                                "event": "ai_response",
+                                                "id": call_id,
+                                                "user_text": transcript_text,
+                                                "text": "",
+                                                "phone": phone,
+                                                "emotion": emotion,
+                                                "location": None,
+                                                "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown"
+                                            }))
+                                            
+                                        elif event_type == "sentence":
+                                            sentence_text = data.get("text", "")
+                                            print(f" 💬 [Voice Stream] AI: {sentence_text}")
+                                            
+                                            if current_sim:
+                                                # Append sentence to memory incrementally
+                                                trans = current_sim["transcript"]
+                                                if trans and trans[-1]["role"] == "assistant":
+                                                    trans[-1]["content"] += " " + sentence_text
+                                                else:
+                                                    trans.append({"role": "assistant", "content": sentence_text, "timestamp": str(datetime.now())})
+                                            
+                                            # Synthesize TTS for this sentence immediately
+                                            if tts_voice and sentence_text:
+                                                try:
+                                                    tts_wav_path = tempfile.mktemp(suffix=".wav")
+                                                    with wave.open(tts_wav_path, "wb") as wav_file:
+                                                        tts_voice.synthesize_wav(sentence_text, wav_file)
+                                                    
+                                                    with open(tts_wav_path, "rb") as f:
+                                                        tts_wav_data = f.read()
+                                                    os.unlink(tts_wav_path)
+                                                    
+                                                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as src:
+                                                        src.write(tts_wav_data)
+                                                        src_path = src.name
+                                                    webm_out = src_path.replace(".wav", ".webm")
+                                                    subprocess.run(
+                                                        ["ffmpeg", "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
+                                                        capture_output=True, timeout=10
+                                                    )
+                                                    os.unlink(src_path)
+                                                    if os.path.exists(webm_out):
+                                                        with open(webm_out, "rb") as f:
+                                                            webm_data = f.read()
+                                                        os.unlink(webm_out)
+                                                        tts_b64 = base64.b64encode(webm_data).decode("utf-8")
+                                                        
+                                                        # Broadcast audio chunk
+                                                        await manager.broadcast(json.dumps({
+                                                            "event": "tts_audio",
+                                                            "chunk": tts_b64,
+                                                            "phone": phone
+                                                        }))
+                                                except Exception as tts_err:
+                                                    print(f" ⚠️ [TTS Greeting Error]: {tts_err}")
+                                                    
+                                            # Broadcast text chunk to Live Dashboard
+                                            await manager.broadcast(json.dumps({
+                                                "event": "ai_streaming_chunk",
+                                                "id": call_id,
+                                                "text_chunk": sentence_text,
+                                                "phone": phone
+                                            }))
+                                            
+                                        elif event_type == "final_meta":
+                                            clean_response = data.get("response", "")
+                                            location_extracted = data.get("location_extracted", "")
+                                            dispatched_services = data.get("dispatched_services", [])
+                                            end_call_flag = data.get("end_call", False)
+                                            emotion = current_sim["emotion"] if current_sim else "Neutral"
+                                            
+                                            if current_sim:
+                                                if location_extracted:
+                                                    current_sim["location"] = location_extracted
+                                                if dispatched_services:
+                                                    current_sim["dispatched_services"] = current_sim.get("dispatched_services", []) + dispatched_services
+                                                    current_sim["dispatched"] = True
+                                                    
+                                            # Broadcast final meta update
+                                            now_iso = str(datetime.now())
+                                            await manager.broadcast(json.dumps({
+                                                "event": "ai_response",
+                                                "id": call_id,
+                                                "user_text": "",
+                                                "text": "",  # Streaming already handled the text
+                                                "phone": phone,
+                                                "emotion": emotion,
+                                                "location": location_extracted if location_extracted else None,
+                                                "city_state": current_sim.get("city_state", "Unknown") if current_sim else "Unknown",
+                                                "dispatched_services": dispatched_services,
+                                                "end_call": end_call_flag,
+                                                "end_time": now_iso if end_call_flag else None,
+                                                "severity": "RESOLVED" if (current_sim and current_sim.get("dispatched")) else ("UNRESOLVED" if end_call_flag else None)
+                                            }))
+                                            
+                                            # Handle end_call DB save
+                                            if end_call_flag and current_sim:
+                                                was_dispatched = current_sim.get("dispatched", False)
+                                                call_severity = "RESOLVED" if was_dispatched else "UNRESOLVED"
+                                                dispatched_list = ",".join(set(current_sim.get("dispatched_services", [])))
+                                                
+                                                try:
+                                                    saved_id = db.save_call(
+                                                        transcript_list=current_sim["transcript"],
+                                                        emotion=current_sim["emotion"],
+                                                        location=current_sim["location"],
+                                                        phone=phone,
+                                                        city_state=current_sim.get("city_state", "Unknown"),
+                                                        severity=call_severity,
+                                                        dispatched_services=dispatched_list,
+                                                        call_id=call_id,
+                                                        latitude=current_sim.get("latitude"),
+                                                        longitude=current_sim.get("longitude"),
+                                                        started_at=current_sim.get("start_time"),
+                                                        ended_by="AI" if end_call_flag else "Caller"
+                                                    )
+                                                    print(f" 💾 [Voice] Call Saved to DB: {saved_id} | Severity: {call_severity}")
+                                                    
+                                                    if phone in app.active_simulations:
+                                                        del app.active_simulations[phone]
+                                                    
+                                                    # Broadcast DB Update
+                                                    try:
+                                                        recent_calls = db.get_recent_calls()
+                                                        formatted_calls_db = {}
+                                                        for row in recent_calls:
+                                                            try: t = json.loads(row["transcript"])
+                                                            except: t = []
+                                                            row_severity = row["severity"] if "severity" in row.keys() and row["severity"] else "RESOLVED"
+                                                            formatted_calls_db[row["id"]] = {
+                                                                "id": row["id"], "title": "Emergency Call", "name": "Caller",
+                                                                "location_name": row["caller_location"] or "Unknown",
+                                                                "city_state": row["caller_city_state"] if "caller_city_state" in row.keys() and row["caller_city_state"] else "Unknown",
+                                                                "time": row["ended_at"] or str(datetime.now()),
+                                                                "started_at": row["started_at"],
+                                                                "ended_at": row["ended_at"],
+                                                                "duration_seconds": row["duration_seconds"],
+                                                                "ended_by": row["ended_by"] or "Unknown",
+                                                                "emotions": [{"emotion": row["detected_emotion"] or "Neutral", "intensity": 0.8}],
+                                                                "phone": row["caller_phone"] if "caller_phone" in row.keys() and row["caller_phone"] else "Unknown",
+                                                                "transcript": t, "severity": row_severity, "type": "Emergency",
+                                                                "status": "Disconnected", "summary": f"Call ended with emotion: {row['detected_emotion']}",
+                                                                "responder_type": "AI",
+                                                                "dispatched_services": [s for s in (row["dispatched_services"].split(",") if "dispatched_services" in row.keys() and row["dispatched_services"] else []) if s]
+                                                            }
+                                                        await manager.broadcast(json.dumps({"event": "db_response", "data": formatted_calls_db}))
+                                                    except Exception as db_err:
+                                                        print(f" ⚠️ [Voice] DB broadcast failed: {db_err}")
+                                                except Exception as db_err:
+                                                    print(f" ⚠️ [Voice] DB save failed: {db_err}")
+                            except Exception as stream_err:
+                                print(f" ⚠️ [Voice Stream Error]: {stream_err}")
                         
                         continue
                         
@@ -771,16 +943,16 @@ async def websocket_endpoint(websocket: WebSocket):
             transcript.append({"role": "user", "content": user_input, "timestamp": str(datetime.now())})
 
             # 1. Ask the AI Brain
-            ai_response = await ai_engine.process_text(user_input)
+            ai_response = await ai_service.process_text(user_input)
             
             # Log AI Response
             transcript.append({"role": "ai", "content": ai_response, "timestamp": str(datetime.now())})
 
             # 2. Check Emotion (Mock)
-            current_emotion = await ai_engine.detect_emotion(user_input)
+            current_emotion = await ai_service.detect_emotion(user_input)
             
             # 3. Check Location (Mock)
-            coords = await ai_engine.detect_location(user_input)
+            coords = await ai_service.detect_location(user_input)
             if coords:
                 current_location = str(coords)
             
@@ -971,7 +1143,7 @@ async def test_chat_proxy(req: TestChatRequest):
     # ⚠️ CONFIG: SET YOUR CURRENT COLAB URL HERE
     # ⚠️ EXAMPLE: "https://abcd-1234.ngrok-free.app/chat"
     # ---------------------------------------------------------
-    COLAB_API_URL = "https://maryjo-prerational-deann.ngrok-free.dev/chat"  
+    COLAB_API_URL = "https://kiera-headmost-nonruinously.ngrok-free.dev/chat"  
     
     payload = {
         "phone_number": req.phone,
@@ -1123,20 +1295,40 @@ async def test_chat_proxy(req: TestChatRequest):
         }))
 
 
-    print(f" 📤 [Proxy] Sending to Colab: {req.message} ({req.emotion})")
-    
-    # Inject the call ID into the payload so the AI always knows which call this belongs to
-    payload["call_id"] = current_sim.get("id")
-    
     try:
-        # A. Forward to Colab
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(COLAB_API_URL, json=payload, timeout=20.0)
+        if AI_MODE == "LOCAL":
+            print(f" 🧠 [Proxy] Processing Message Locally: {req.message} ({req.emotion})")
+            try:
+                ai_data = await ai_service.process_text_full(
+                    text=req.message,
+                    phone=req.phone,
+                    city=req.city,
+                    state=req.state,
+                    emotion=req.emotion,
+                    reset=req.reset
+                )
+            except Exception as e:
+                print(f" ⚠️ [Proxy Error Local]: {e}")
+                ai_data = {"response": "Local processing failed.", "location_extracted": "", "dispatched_services": [], "end_call": False}
+        else:
+            print(f" 📤 [Proxy] Sending to Colab: {req.message} ({req.emotion})")
             
-        if resp.status_code != 200:
-            return {"spoken_response": "⚠️ Error: Colab API Down or Invalid URL.", "trigger_map": False}
+            # Inject the call ID into the payload so the AI always knows which call this belongs to
+            payload["call_id"] = current_sim.get("id")
             
-        ai_data = resp.json()
+            try:
+                # A. Forward to Colab
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(COLAB_API_URL, json=payload, timeout=20.0)
+                    
+                if resp.status_code != 200:
+                    return {"spoken_response": "⚠️ Error: Colab API Down or Invalid URL.", "trigger_map": False}
+                    
+                ai_data = resp.json()
+            except Exception as e:
+                print(f" ⚠️ [Proxy Error Colab]: {e}")
+                ai_data = {"response": "Colab API Down or unreachable.", "location_extracted": "", "dispatched_services": [], "end_call": False}
+            
         clean_response = ai_data.get("response", "")
         raw_llm_output = ai_data.get("raw_llm_output", "")
         extracted_location = ai_data.get("location_extracted", "")

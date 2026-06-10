@@ -21,3 +21,7 @@ yarn-error.log*
 server/database/*.db
 server/tts_models/
 .venv/
+venv_old/
+node_portable/
+911-model/
+recovered_chat_history.md

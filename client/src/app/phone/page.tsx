@@ -151,17 +151,7 @@ export default function PhonePage() {
 
     const lookupLocation = async (num: string) => {
         const areaCode = num.substring(0, 3);
-        try {
-            const areaCodes = require('area-codes');
-            const data = areaCodes.get(areaCode);
-            if (data) {
-                setRegLocation(typeof data === 'string' ? data : `${data.city || ''} ${data.state || ''}`);
-            } else {
-                fallbackLookup(areaCode);
-            }
-        } catch (e) {
-            fallbackLookup(areaCode);
-        }
+        fallbackLookup(areaCode);
     };
 
     const fallbackLookup = (areaCode: string) => {

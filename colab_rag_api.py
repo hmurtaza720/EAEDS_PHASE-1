@@ -9,7 +9,7 @@
 #  INSTALLS
 # ================================================
 !pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
-!pip install --no-deps "xformers<0.0.27" "trl<0.9.0" peft accelerate bitsandbytes
+!pip install --no-deps xformers "trl<0.9.0" peft accelerate bitsandbytes
 !pip install -q fastapi uvicorn pyngrok nest-asyncio sentence-transformers
 !pip install -q faster-whisper opensmile soundfile scikit-learn
 
@@ -56,7 +56,7 @@ logging.getLogger("unsloth").setLevel(logging.ERROR)
 MODEL_ID = "unsloth/llama-3-8b-Instruct-bnb-4bit"
 EMBED_MODEL_ID = "all-MiniLM-L6-v2"
 WHISPER_MODEL_SIZE = "small"  # Options: tiny, base, small, medium
-NGROK_AUTH_TOKEN = "39epSpZBJBXEKQjbC8wsWzDjbew_6DiZJ9SKDJghSCqizoAdk"
+NGROK_AUTH_TOKEN = "379pHHHLQtvbt7YGRViXrOqhk0u_5AkwqBt88Pn5R64gQ6AoN"
 MAX_SEQ_LENGTH = 2048
 dtype = None
 load_in_4bit = True
@@ -263,13 +263,13 @@ CRITICAL: You must be extremely concise. Keep your responses under 15 words. Sho
 ### CRITICAL OUTPUT FORMAT — YOU MUST FOLLOW THIS EXACTLY
 
 When you identify a location from the caller, YOU MUST output this tag in your response:
-<ACTION>UPDATE_MAP: [Full Address]</ACTION>
+<ACTION>UPDATE_MAP: [Full Address]<\s*/\s*ACTION\s*>
 
 When you decide to dispatch emergency services, YOU MUST output this tag in your response:
-<ACTION>DISPATCH: [Service1, Service2]</ACTION>
+<ACTION>DISPATCH: [Service1, Service2]<\s*/\s*ACTION\s*>
 
 When the call is ending (caller is safe, help arrived, or says goodbye), YOU MUST output:
-<ACTION>END_CALL</ACTION>
+<ACTION>END_CALL<\s*/\s*ACTION\s*>
 
 IMPORTANT: These tags are NOT optional. You MUST include them. Do NOT just say "I'm sending help" without the tag. The tag is what actually triggers the dispatch. Without the tag, NO help is sent.
 
@@ -277,27 +277,27 @@ IMPORTANT: These tags are NOT optional. You MUST include them. Do NOT just say "
 
 Example 1 — Caller gives address:
 Caller: "I'm at 45 Park Avenue, New York"
-Your response: "I've got your location at 45 Park Avenue. Help is on the way. <ACTION>UPDATE_MAP: 45 Park Avenue, New York</ACTION>"
+Your response: "I've got your location at 45 Park Avenue. Help is on the way. <ACTION>UPDATE_MAP: 45 Park Avenue, New York<\s*/\s*ACTION\s*>"
 
 Example 2 — You decide to send help:
 Caller: "There's a fire and someone is hurt"
-Your response: "I'm dispatching Fire and EMS to your location right now. Stay on the line. <ACTION>DISPATCH: Fire, EMS</ACTION>"
+Your response: "I'm dispatching Fire and EMS to your location right now. Stay on the line. <ACTION>DISPATCH: Fire, EMS<\s*/\s*ACTION\s*>"
 
 Example 3 — Caller gives address AND you dispatch:
 Caller: "There's a robbery at 100 Broadway, New York NY 10005"
-Your response: "I'm sending police to 100 Broadway immediately. Stay safe. <ACTION>UPDATE_MAP: 100 Broadway, New York, NY 10005</ACTION> <ACTION>DISPATCH: Police</ACTION>"
+Your response: "I'm sending police to 100 Broadway immediately. Stay safe. <ACTION>UPDATE_MAP: 100 Broadway, New York, NY 10005<\s*/\s*ACTION\s*> <ACTION>DISPATCH: Police<\s*/\s*ACTION\s*>"
 
 Example 4 — Call ending:
 Caller: "The police are here, thank you, bye"
-Your response: "You're welcome. Stay safe. Goodbye. <ACTION>END_CALL</ACTION>"
+Your response: "You're welcome. Stay safe. Goodbye. <ACTION>END_CALL<\s*/\s*ACTION\s*>"
 
 ### RULES
 - If address is vague, ask for cross-streets in {city}.
-- The MOMENT a caller gives you a specific address, you MUST output <ACTION>UPDATE_MAP: [address]</ACTION> in that same response. Do not wait.
-- The MOMENT you have both the emergency type and the address, you MUST output <ACTION>DISPATCH: [services]</ACTION> in that same response. Do not wait for more information.
+- The MOMENT a caller gives you a specific address, you MUST output <ACTION>UPDATE_MAP: [address]<\s*/\s*ACTION\s*> in that same response. Do not wait.
+- The MOMENT you have both the emergency type and the address, you MUST output <ACTION>DISPATCH: [services]<\s*/\s*ACTION\s*> in that same response. Do not wait for more information.
 - If a caller reports a fire, dispatch Fire. If injuries, dispatch EMS. If crime, dispatch Police.
-- NEVER say "I'm sending help" or "dispatching" without also including the <ACTION>DISPATCH: ...</ACTION> tag. Saying it without the tag means NO help is actually sent.
-- NEVER say "I've got your location" without also including the <ACTION>UPDATE_MAP: ...</ACTION> tag. Saying it without the tag means the location is NOT recorded.
+- NEVER say "I'm sending help" or "dispatching" without also including the <ACTION>DISPATCH: ...<\s*/\s*ACTION\s*> tag. Saying it without the tag means NO help is actually sent.
+- NEVER say "I've got your location" without also including the <ACTION>UPDATE_MAP: ...<\s*/\s*ACTION\s*> tag. Saying it without the tag means the location is NOT recorded.
 - STOP generating after your response. Do NOT generate the caller's next message.
 - Do NOT use markdown bold (**) in your ACTION tags."""
 
@@ -331,13 +331,13 @@ Your response: "You're welcome. Stay safe. Goodbye. <ACTION>END_CALL</ACTION>"
     location_extracted = ""
     dispatched_services = []
 
-    map_match = re.search(r'<ACTION>\s*UPDATE_MAP:\s*(.*?)(?:</ACTION>|$)', final_response_raw, re.IGNORECASE | re.DOTALL)
+    map_match = re.search(r'<\s*ACTION\s*>\s*UPDATE_MAP:\s*(.*?)(?:<\s*/\s*ACTION\s*>|$)', final_response_raw, re.IGNORECASE | re.DOTALL)
     if not map_match:
         map_match = re.search(r'UPDATE_MAP:\s*(.+?)(?:\.|$)', final_response_raw, re.IGNORECASE)
     if map_match:
         location_extracted = map_match.group(1).strip().rstrip('.')
 
-    dispatch_match = re.search(r'<ACTION>\s*DISPATCH:\s*(.*?)(?:</ACTION>|$)', final_response_raw, re.IGNORECASE | re.DOTALL)
+    dispatch_match = re.search(r'<\s*ACTION\s*>\s*DISPATCH:\s*(.*?)(?:<\s*/\s*ACTION\s*>|$)', final_response_raw, re.IGNORECASE | re.DOTALL)
     if not dispatch_match:
         dispatch_match = re.search(r'DISPATCH:\s*(.+?)(?:\.|$)', final_response_raw, re.IGNORECASE)
     if dispatch_match:
@@ -345,13 +345,13 @@ Your response: "You're welcome. Stay safe. Goodbye. <ACTION>END_CALL</ACTION>"
         dispatched_services = [s.strip() for s in services_str.split(',')]
 
     # Clean response
-    clean_response = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', final_response_raw, flags=re.IGNORECASE | re.DOTALL).strip()
+    clean_response = re.sub(r'<\s*ACTION\s*>.*?(?:<\s*/\s*ACTION\s*>|$)', '', final_response_raw, flags=re.IGNORECASE | re.DOTALL).strip()
     clean_response = re.sub(r'UPDATE_MAP:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
     clean_response = re.sub(r'DISPATCH:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
     clean_response = re.sub(r'END_CALL\b', '', clean_response, flags=re.IGNORECASE).strip()
     clean_response = re.sub(r'\s{2,}', ' ', clean_response).strip()
 
-    end_call_flag = bool(re.search(r'(?:<ACTION>\s*)?END_CALL\s*(?:</ACTION>|$)', final_response_raw, re.IGNORECASE))
+    end_call_flag = bool(re.search(r'(?:<\s*ACTION\s*>\s*)?END_CALL\s*(?:<\s*/\s*ACTION\s*>|$)', final_response_raw, re.IGNORECASE))
 
     # Save to memory
     full_turn = f"<|start_header_id|>user<|end_header_id|>\n\nCaller: {text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n{clean_response}<|eot_id|>"
@@ -390,9 +390,9 @@ Your goal is to save lives by being calm, efficient, and direct.
 {context_text}
 
 ### OUTPUT TAGS
-<ACTION>UPDATE_MAP: [Address]</ACTION>
-<ACTION>DISPATCH: [Fire, Police, EMS]</ACTION>
-<ACTION>END_CALL</ACTION>
+<ACTION>UPDATE_MAP: [Address]<\s*/\s*ACTION\s*>
+<ACTION>DISPATCH: [Fire, Police, EMS]<\s*/\s*ACTION\s*>
+<ACTION>END_CALL<\s*/\s*ACTION\s*>
 
 ### RULES
 - STOP after your response.
@@ -436,7 +436,7 @@ Your goal is to save lives by being calm, efficient, and direct.
                 sentence_buffer = parts[1] if len(parts) > 1 else ""
                 
                 # Check for action tags or duplicates or accidental metadata leak
-                clean_sentence = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', sentence, flags=re.IGNORECASE | re.DOTALL).strip()
+                clean_sentence = re.sub(r'<\s*ACTION\s*>.*?(?:<\s*/\s*ACTION\s*>|$)', '', sentence, flags=re.IGNORECASE | re.DOTALL).strip()
                 if clean_sentence and "Dispatcher:" not in clean_sentence and "Caller:" not in clean_sentence:
                     # Filter out loose metadata or punctuation-only fragments
                     is_pure_logic = any(kw in clean_sentence.upper() for kw in ["DISPATCH:", "UPDATE_MAP:", "END_CALL"])
@@ -452,7 +452,7 @@ Your goal is to save lives by being calm, efficient, and direct.
 
     # Any remaining text in buffer
     if sentence_buffer.strip():
-        clean_sentence = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', sentence_buffer, flags=re.IGNORECASE | re.DOTALL).strip()
+        clean_sentence = re.sub(r'<\s*ACTION\s*>.*?(?:<\s*/\s*ACTION\s*>|$)', '', sentence_buffer, flags=re.IGNORECASE | re.DOTALL).strip()
         if clean_sentence and "Dispatcher:" not in clean_sentence and "Caller:" not in clean_sentence:
             is_pure_logic = any(kw in clean_sentence.upper() for kw in ["DISPATCH:", "UPDATE_MAP:", "END_CALL"])
             has_content = len(re.sub(r'[^\w\s]', '', clean_sentence).strip()) > 0
@@ -470,26 +470,26 @@ Your goal is to save lives by being calm, efficient, and direct.
     location_extracted = ""
     dispatched_services = []
 
-    map_match = re.search(r'<ACTION>\s*UPDATE_MAP:\s*(.*?)(?:</ACTION>|$)', full_generated_text, re.IGNORECASE | re.DOTALL)
+    map_match = re.search(r'<\s*ACTION\s*>\s*UPDATE_MAP:\s*(.*?)(?:<\s*/\s*ACTION\s*>|$)', full_generated_text, re.IGNORECASE | re.DOTALL)
     if not map_match:
         map_match = re.search(r'UPDATE_MAP:\s*(.+?)(?:\.|$)', full_generated_text, re.IGNORECASE)
     if map_match:
         location_extracted = map_match.group(1).strip().rstrip('.')
 
-    dispatch_match = re.search(r'<ACTION>\s*DISPATCH:\s*(.*?)(?:</ACTION>|$)', full_generated_text, re.IGNORECASE | re.DOTALL)
+    dispatch_match = re.search(r'<\s*ACTION\s*>\s*DISPATCH:\s*(.*?)(?:<\s*/\s*ACTION\s*>|$)', full_generated_text, re.IGNORECASE | re.DOTALL)
     if not dispatch_match:
         dispatch_match = re.search(r'DISPATCH:\s*(.+?)(?:\.|$)', full_generated_text, re.IGNORECASE)
     if dispatch_match:
         services_str = dispatch_match.group(1).strip().rstrip('.')
         dispatched_services = [s.strip() for s in services_str.split(',')]
 
-    clean_response = re.sub(r'<ACTION>.*?(?:</ACTION>|$)', '', full_generated_text, flags=re.IGNORECASE | re.DOTALL).strip()
+    clean_response = re.sub(r'<\s*ACTION\s*>.*?(?:<\s*/\s*ACTION\s*>|$)', '', full_generated_text, flags=re.IGNORECASE | re.DOTALL).strip()
     clean_response = re.sub(r'UPDATE_MAP:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
     clean_response = re.sub(r'DISPATCH:\s*[^\.\n]+\.?', '', clean_response, flags=re.IGNORECASE).strip()
     clean_response = re.sub(r'END_CALL\b', '', clean_response, flags=re.IGNORECASE).strip()
     clean_response = re.sub(r'\s{2,}', ' ', clean_response).strip()
 
-    end_call_flag = bool(re.search(r'(?:<ACTION>\s*)?END_CALL\s*(?:</ACTION>|$)', full_generated_text, re.IGNORECASE))
+    end_call_flag = bool(re.search(r'(?:<\s*ACTION\s*>\s*)?END_CALL\s*(?:<\s*/\s*ACTION\s*>|$)', full_generated_text, re.IGNORECASE))
 
     # Save to memory
     full_turn = f"<|start_header_id|>user<|end_header_id|>\n\nCaller: {text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n{clean_response}<|eot_id|>"

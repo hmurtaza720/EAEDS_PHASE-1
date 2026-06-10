@@ -120,6 +120,7 @@ const Page = () => {
                 // If we have a location name from the LLM...
                 if (call.location_name && call.location_name !== "Unknown" && call.location_name !== "Detecting...") {
                     // Geocode if: active/dispatching call AND (no coords yet OR the name changed since last geocode)
+                    // @ts-ignore
                     const isActiveCall = call.status !== "Disconnected" && call.status !== "Archived";
                     const isNewLocation = geocodedNamesRef.current[id] !== call.location_name;
                     const needsGeocode = isActiveCall && (
