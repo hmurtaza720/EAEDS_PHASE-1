@@ -240,7 +240,15 @@ export default function PhonePage() {
     // Audio Logic
     const startAudio = async (socket: WebSocket) => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    sampleRate: { ideal: 16000 },
+                    channelCount: { ideal: 1 },
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                }
+            });
             setAudioStream(stream);
 
             // 1. Setup VAD (AudioContext + Analyser)
@@ -249,8 +257,8 @@ export default function PhonePage() {
             audioContextRef.current = audioCtx;
             const analyser = audioCtx.createAnalyser();
             analyser.fftSize = 512;
-            analyser.minDecibels = -70;
-            analyser.smoothingTimeConstant = 0.2;
+            analyser.minDecibels = -60;
+            analyser.smoothingTimeConstant = 0.3;
             analyserRef.current = analyser;
 
             const source = audioCtx.createMediaStreamSource(stream);
@@ -301,8 +309,8 @@ export default function PhonePage() {
                 for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
                 const avgVolume = sum / dataArray.length;
 
-                // Threshold tune (e.g. > 15 is speaking)
-                const isSpeakingNow = avgVolume > 15;
+                // Threshold tune — 18 filters noise but catches speech
+                const isSpeakingNow = avgVolume > 18;
 
                 if (isSpeakingNow) {
                     hasSpokenRef.current = true;
@@ -326,13 +334,13 @@ export default function PhonePage() {
                     // Volume is low. If we don't have a timer and user spoke, start one.
                     if (!silenceTimerRef.current && hasSpokenRef.current) {
                         silenceTimerRef.current = setTimeout(() => {
-                            // Silence duration reached (1200ms to allow for panicking breath/pauses)
+                            // Silence duration: 1500ms to capture full sentences
                             if (mediaRecorder.state === "recording") {
                                 mediaRecorder.stop(); // Triggers onstop -> sends chunk -> starts again
                             }
                             silenceTimerRef.current = null;
                             hasSpokenRef.current = false;
-                        }, 1200);
+                        }, 1500);
                     }
                 }
             }, 50); // run every 50ms
