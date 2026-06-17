@@ -166,10 +166,18 @@ export default function PhonePage() {
         if (!phoneNumber || !selectedCity) return;
         setStatus("CALLING");
 
-        // Connect WS
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const host = window.location.host.split(":")[0];
-        const socket = new WebSocket(`${protocol}//${host}:8000/ws/call`);
+        // Connect WS — auto-detects ngrok (HTTPS) vs local (HTTP)
+        let wsUrl: string;
+        if (window.location.protocol === "https:") {
+            // Ngrok mode: WebSocket proxied through same host via custom server
+            wsUrl = `wss://${window.location.host}/ws/call`;
+        } else {
+            // Local mode: connect directly to backend on port 8000
+            const host = window.location.host.split(":")[0];
+            wsUrl = `ws://${host}:8000/ws/call`;
+        }
+        console.log("Connecting WS to:", wsUrl);
+        const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
             console.log("Connected to Dispatch");

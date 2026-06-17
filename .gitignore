@@ -25,3 +25,7 @@ venv_old/
 node_portable/
 911-model/
 recovered_chat_history.md
+ffmpeg_portable/
+ngrok.exe
+ngrok.yml
+*.md.bak

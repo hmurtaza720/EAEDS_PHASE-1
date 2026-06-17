@@ -23,6 +23,12 @@ import httpx
 
 from fastapi.responses import HTMLResponse
 
+# Portable FFmpeg path (no system install needed)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FFMPEG_PATH = os.path.join(_PROJECT_ROOT, "ffmpeg_portable", "ffmpeg.exe")
+if not os.path.exists(FFMPEG_PATH):
+    FFMPEG_PATH = "ffmpeg"  # Fallback to system PATH
+
 # Initialize App
 app = FastAPI(title="EAEDS Control")
 
@@ -227,9 +233,15 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str, exclude: WebSocket = None):
+        dead = []
         for connection in self.active_connections:
             if connection != exclude:
-                await connection.send_text(message)
+                try:
+                    await connection.send_text(message)
+                except (RuntimeError, WebSocketDisconnect, Exception):
+                    dead.append(connection)
+        for d in dead:
+            self.disconnect(d)
 
 manager = ConnectionManager()
 # ... (existing WS endpoint)
@@ -316,7 +328,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             src_path = src.name
                         webm_out = src_path.replace(".wav", ".webm")
                         subprocess.run(
-                            ["ffmpeg", "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
+                            [FFMPEG_PATH, "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
                             capture_output=True, timeout=10
                         )
                         os.unlink(src_path)
@@ -419,7 +431,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     wav_path = webm_path.replace(".webm", ".wav")
                     result = subprocess.run(
-                        ["ffmpeg", "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", "-f", "wav", wav_path],
+                        [FFMPEG_PATH, "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", "-f", "wav", wav_path],
                         capture_output=True, timeout=10
                     )
 
@@ -690,7 +702,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                                         src_path = src.name
                                                     webm_out = src_path.replace(".wav", ".webm")
                                                     subprocess.run(
-                                                        ["ffmpeg", "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
+                                                        [FFMPEG_PATH, "-y", "-i", src_path, "-c:a", "libopus", "-b:a", "32k", webm_out],
                                                         capture_output=True, timeout=10
                                                     )
                                                     os.unlink(src_path)
