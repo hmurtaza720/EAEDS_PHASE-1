@@ -403,14 +403,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f" 🛑 [Voice] Barge-in! Caller interrupted the AI.")
                 continue
 
-            if message_data.get("event") in ["user_utterance", "audio_relay"]:
+            if message_data.get("event") in ["user_utterance", "audio_relay", "text_utterance"]:
                 if is_manual_mode:
                     # Manual mode: pure audio bridge to human operator
                     await manager.broadcast(data, exclude=websocket)
                     continue
 
+                is_text = message_data.get("event") == "text_utterance"
+                text_payload = message_data.get("text", "")
                 chunk_b64 = message_data.get("chunk", "")
-                if not chunk_b64:
+                if not is_text and not chunk_b64:
                     continue
 
                 # Get Request Metadata
@@ -419,31 +421,36 @@ async def websocket_endpoint(websocket: WebSocket):
                 state = getattr(websocket, '_voice_state', 'Unknown')
                 call_id = getattr(websocket, '_voice_call_id', 'unknown_call')
 
-                print(f"\n 🎙️ [Voice] Processing Utterance ({len(chunk_b64)} bytes) for {phone} [ID: {call_id}]")
+                if is_text:
+                    print(f"\n 💬 [Voice-Text] Processing Text Utterance for {phone} [ID: {call_id}]")
+                else:
+                    print(f"\n 🎙️ [Voice] Processing Utterance ({len(chunk_b64)} bytes) for {phone} [ID: {call_id}]")
 
                 try:
-                    # Decode single WebM blob from frontend VAD
-                    webm_bytes = base64.b64decode(chunk_b64)
-                    
-                    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as webm_file:
-                        webm_file.write(webm_bytes)
-                        webm_path = webm_file.name
+                    wav_path = None
+                    if not is_text:
+                        # Decode single WebM blob from frontend VAD
+                        webm_bytes = base64.b64decode(chunk_b64)
+                        
+                        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as webm_file:
+                            webm_file.write(webm_bytes)
+                            webm_path = webm_file.name
 
-                    wav_path = webm_path.replace(".webm", ".wav")
-                    result = subprocess.run(
-                        [FFMPEG_PATH, "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", "-f", "wav", wav_path],
-                        capture_output=True, timeout=10
-                    )
+                        wav_path = webm_path.replace(".webm", ".wav")
+                        result = subprocess.run(
+                            [FFMPEG_PATH, "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", "-f", "wav", wav_path],
+                            capture_output=True, timeout=10
+                        )
 
-                    if result.returncode != 0:
-                        print(f" ⚠️ [Voice] ffmpeg error: {result.stderr.decode()[:200]}")
+                        if result.returncode != 0:
+                            print(f" ⚠️ [Voice] ffmpeg error: {result.stderr.decode()[:200]}")
+                            os.unlink(webm_path)
+                            continue
+
                         os.unlink(webm_path)
-                        continue
+                        print(f" ✅ [Voice] ffmpeg → {wav_path}")
 
-                    os.unlink(webm_path)
-                    print(f" ✅ [Voice] ffmpeg → {wav_path}")
-
-                    # Process audio
+                    # Process audio OR text
                     if AI_MODE == "LOCAL":
                         print(f" 🧠 [Voice] Running local AI voice pipeline...")
                         current_sim = None
@@ -452,7 +459,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             
                         try:
                             # ai_service.process_audio returns an async generator yielding JSON strings
-                            async for line in ai_service.process_audio(wav_path, phone, city, state):
+                            generator = ai_service.process_text(text_payload, phone, city, state) if is_text else ai_service.process_audio(wav_path, phone, city, state)
+                            async for line in generator:
                                 if not line or not line.strip():
                                     continue
                                 try:

@@ -72,12 +72,8 @@ class LocalAIService(AIService):
 
         # B. STT Model (faster-whisper)
         if WhisperModel:
-            print(" [LocalAI] [LOADING] Loading Faster-Whisper (medium)...")
-            try:
-                self.whisper_model = WhisperModel("medium", device=self.device, compute_type="float16" if self.device == "cuda" else "float32")
-            except Exception:
-                print(" [LocalAI] [WARNING] 'medium' model failed to load, falling back to 'small'...")
-                self.whisper_model = WhisperModel("small", device=self.device, compute_type="float16" if self.device == "cuda" else "float32")
+            print(" [LocalAI] [LOADING] Loading Faster-Whisper (small)...")
+            self.whisper_model = WhisperModel("small", device=self.device, compute_type="float16" if self.device == "cuda" else "float32")
             print(" [LocalAI] [OK] Faster-Whisper Loaded!")
         else:
             self.whisper_model = None
@@ -392,7 +388,7 @@ You: "Glad to help. Stay safe. <ACTION>END_CALL</ACTION>"
         try:
             segments, info = self.whisper_model.transcribe(
                 wav_path,
-                beam_size=3,
+                beam_size=1,
                 language="en",
                 vad_filter=True,
                 vad_parameters=dict(min_silence_duration_ms=500),
@@ -622,3 +618,36 @@ Your goal is to save lives by being calm, efficient, and direct.
 
         elapsed_ms = int((datetime.now() - start_time).total_seconds() * 1000)
         print(f" [LocalAI] [TIME] Total streaming processing time: {elapsed_ms}ms")
+
+    async def process_text(self, transcript: str, phone: str, city: str, state: str):
+        """MOCKED implementation for load testing to bypass GPU limits."""
+        import asyncio
+        import json
+        
+        emotion = "Panicked"
+        threat_result = {"is_threat": True, "classification": "emergency", "confidence": 0.99}
+        
+        yield json.dumps({
+            "event": "start_turn",
+            "transcript": transcript,
+            "emotion": emotion,
+            "threat": threat_result
+        }) + "\n"
+        
+        mock_response = "Dispatching fire department to your location. Stay calm and evacuate if possible."
+        
+        yield json.dumps({
+            "event": "sentence",
+            "text": mock_response,
+            "audio": ""  # Bypass TTS for load test
+        }) + "\n"
+        
+        yield json.dumps({
+            "event": "final_meta",
+            "response": mock_response,
+            "context_used": [],
+            "location_extracted": "User Location",
+            "dispatched_services": ["Fire Department"],
+            "end_call": False
+        }) + "\n"
+

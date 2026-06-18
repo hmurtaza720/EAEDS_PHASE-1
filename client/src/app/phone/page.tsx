@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, MapPin, Delete, PhoneOff, Mic, MicOff, ArrowLeft } from "lucide-react";
+import { Phone, MapPin, Delete, PhoneOff, Mic, MicOff, ArrowLeft, CircleStop } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // State → Cities mapping (matches the chat page at localhost:8000/chat)
@@ -75,15 +75,14 @@ export default function PhonePage() {
     // Audio State and Refs
     const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const vqRef = useRef<number>(0); // animation frame ref
     const chunksRef = useRef<Blob[]>([]);
-    const hasSpokenRef = useRef<boolean>(false);
     const aiAudioRef = useRef<HTMLAudioElement | null>(null);
     const [isMuted, setIsMuted] = useState(false);
     const [transcript, setTranscript] = useState<string[]>([]);
+    // PTT state
+    const [isRecording, setIsRecording] = useState(false);
+    const wsRef = useRef<WebSocket | null>(null);
 
     useEffect(() => {
         statusRef.current = status;
@@ -236,8 +235,7 @@ export default function PhonePage() {
         setStatus("ENDED");
     };
 
-    // Audio Logic
-    // Audio Logic
+    // Audio Logic — Push-to-Talk (PTT)
     const startAudio = async (socket: WebSocket) => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -250,24 +248,46 @@ export default function PhonePage() {
                 }
             });
             setAudioStream(stream);
+            wsRef.current = socket;
 
-            // 1. Setup VAD (AudioContext + Analyser)
+            // Setup AudioContext (needed for potential future use)
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
             const audioCtx = new AudioContextClass();
             audioContextRef.current = audioCtx;
-            const analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 512;
-            analyser.minDecibels = -60;
-            analyser.smoothingTimeConstant = 0.3;
-            analyserRef.current = analyser;
 
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
+            // Mic is ready — user will tap PTT button to start/stop recording
+            setCallPhase("LISTENING");
+        } catch (err) {
+            console.error("Mic Access Denied", err);
+        }
+    };
 
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    // PTT: Toggle recording on/off
+    const toggleRecording = () => {
+        const socket = wsRef.current;
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        if (!audioStream) return;
 
-            // 2. Setup MediaRecorder for capturing the clean audio
-            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        if (isRecording) {
+            // STOP recording — send audio to backend
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+                mediaRecorderRef.current.stop();
+            }
+            setIsRecording(false);
+            setCallPhase("PROCESSING");
+        } else {
+            // START recording
+            // Barge-in: If AI is talking, cut her off
+            if (aiAudioRef.current && !aiAudioRef.current.paused) {
+                aiAudioRef.current.pause();
+                aiAudioRef.current.onended = null;
+                audioQueueRef.current = [];
+                isPlayingRef.current = false;
+                socket.send(JSON.stringify({ event: "interrupt" }));
+            }
+
+            chunksRef.current = [];
+            const mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
             mediaRecorderRef.current = mediaRecorder;
 
             mediaRecorder.ondataavailable = (e) => {
@@ -290,63 +310,11 @@ export default function PhonePage() {
                     reader.readAsDataURL(blob);
                 }
                 chunksRef.current = [];
-                
-                // Restart recording for the next utterance if still connected
-                if (socket.readyState === WebSocket.OPEN) {
-                    mediaRecorder.start();
-                }
             };
 
-            // Start initial recording
             mediaRecorder.start();
-
-            // 3. VAD Loop (using setInterval for stability)
-            vqRef.current = window.setInterval(() => {
-                if (socket.readyState !== WebSocket.OPEN) return;
-
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-                const avgVolume = sum / dataArray.length;
-
-                // Threshold tune — 18 filters noise but catches speech
-                const isSpeakingNow = avgVolume > 18;
-
-                if (isSpeakingNow) {
-                    hasSpokenRef.current = true;
-                    setCallPhase("LISTENING");
-
-                    // Barge-in: If AI is talking, cut her off!
-                    if (aiAudioRef.current && !aiAudioRef.current.paused) {
-                        aiAudioRef.current.pause();
-                        aiAudioRef.current.onended = null;
-                        audioQueueRef.current = [];
-                        isPlayingRef.current = false;
-                        socket.send(JSON.stringify({ event: "interrupt" }));
-                    }
-
-                    // Reset silence timer because user is speaking
-                    if (silenceTimerRef.current) {
-                        clearTimeout(silenceTimerRef.current);
-                        silenceTimerRef.current = null;
-                    }
-                } else {
-                    // Volume is low. If we don't have a timer and user spoke, start one.
-                    if (!silenceTimerRef.current && hasSpokenRef.current) {
-                        silenceTimerRef.current = setTimeout(() => {
-                            // Silence duration: 1500ms to capture full sentences
-                            if (mediaRecorder.state === "recording") {
-                                mediaRecorder.stop(); // Triggers onstop -> sends chunk -> starts again
-                            }
-                            silenceTimerRef.current = null;
-                            hasSpokenRef.current = false;
-                        }, 1500);
-                    }
-                }
-            }, 50); // run every 50ms
-
-        } catch (err) {
-            console.error("Mic Access Denied", err);
+            setIsRecording(true);
+            setCallPhase("LISTENING");
         }
     };
 
@@ -354,14 +322,6 @@ export default function PhonePage() {
         if (audioStream) {
             audioStream.getTracks().forEach(track => track.stop());
             setAudioStream(null);
-        }
-        if (vqRef.current) {
-            clearInterval(vqRef.current);
-            vqRef.current = 0;
-        }
-        if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
-            silenceTimerRef.current = null;
         }
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
             mediaRecorderRef.current.stop();
@@ -377,8 +337,9 @@ export default function PhonePage() {
         }
         audioQueueRef.current = [];
         isPlayingRef.current = false;
-        hasSpokenRef.current = false;
         chunksRef.current = [];
+        setIsRecording(false);
+        wsRef.current = null;
     };
 
     const audioQueueRef = useRef<string[]>([]);
@@ -469,9 +430,10 @@ export default function PhonePage() {
                                     </div>
                                     <h2 className="text-xl font-bold text-white">
                                         {status === "CALLING" ? "Calling 911..." :
-                                            callPhase === "LISTENING" ? "Listening..." :
+                                            isRecording ? "🔴 Recording..." :
                                                 callPhase === "PROCESSING" ? "Processing..." :
-                                                    "AI Speaking..."}
+                                                    callPhase === "SPEAKING" ? "AI Speaking..." :
+                                                        "Tap Mic to Speak"}
                                     </h2>
                                     <p className="text-sm text-slate-400">{regLocation || `${selectedCity}, ${selectedState}` || "Connected"}</p>
                                     {/* Live transcript */}
@@ -556,20 +518,27 @@ export default function PhonePage() {
                             </>
                         ) : (
                             <>
+                                {/* PTT Button — the main interaction */}
                                 <button
-                                    className={cn("flex h-16 w-16 items-center justify-center rounded-full transition-all", isMuted ? "bg-white text-slate-900" : "bg-slate-800 text-white")}
-                                    onClick={() => setIsMuted(!isMuted)}
+                                    className={cn(
+                                        "flex h-20 w-20 items-center justify-center rounded-full transition-all shadow-lg",
+                                        isRecording
+                                            ? "bg-red-500 text-white shadow-red-900/40 animate-pulse hover:bg-red-400"
+                                            : callPhase === "PROCESSING" || callPhase === "SPEAKING"
+                                                ? "bg-slate-700 text-slate-500 cursor-not-allowed opacity-50"
+                                                : "bg-green-500 text-white shadow-green-900/30 hover:bg-green-400 hover:scale-105 active:scale-95"
+                                    )}
+                                    onClick={toggleRecording}
+                                    disabled={callPhase === "PROCESSING" || callPhase === "SPEAKING"}
                                 >
-                                    {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                                    {isRecording ? <CircleStop size={36} /> : <Mic size={36} />}
                                 </button>
+                                {/* End Call Button */}
                                 <button
-                                    className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-900/30 transition-all hover:bg-red-400 hover:scale-105 active:scale-95"
+                                    className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/80 text-white shadow-lg shadow-red-900/30 transition-all hover:bg-red-400 hover:scale-105 active:scale-95"
                                     onClick={handleEndCall}
                                 >
-                                    <PhoneOff size={32} fill="currentColor" />
-                                </button>
-                                <button className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-slate-400">
-                                    <MapPin size={24} />
+                                    <PhoneOff size={24} fill="currentColor" />
                                 </button>
                             </>
                         )}
